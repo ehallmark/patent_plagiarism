@@ -1,0 +1,53 @@
+package seed;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.HashSet;
+import java.util.Set;
+
+public class Patent {
+	private String name;
+	private Set<Integer> shingles;
+
+	// Constructor
+	public Patent(String inName, String title, String inAbstract, String inDescription) throws Exception {
+		name = inName;
+		shingles = collectShinglesFrom(inAbstract.replaceAll("[^0-9a-z]", ""));
+		shingles.addAll(collectShinglesFrom(title.replaceAll("[^0-9a-z]", "")));
+		shingles.addAll(collectShinglesFrom(inDescription.substring(0, Math.min(inDescription.length(),10000)).replaceAll("[^0-9a-z]", "")));
+		if(shingles.size()<5) throw new Exception();
+	}
+
+	private Set<Integer> collectShinglesFrom(String inText) throws IOException {
+		Set<Integer> s = new HashSet<Integer>();
+		StringReader ss = new StringReader(inText);		
+		int c; 
+		while((c = ss.read()) != -1) {
+			ss.mark(Main.LEN_SHINGLES);
+			char[] hashVal = new char[Main.LEN_SHINGLES];
+			hashVal[0] = (char)c;
+			for(int i = 1; i < Main.LEN_SHINGLES; i++) {
+				if((c=ss.read()) != -1) {
+					hashVal[i]=(char)c;
+				} else {
+					break;
+				}
+			}
+			if(c==-1) break;
+			s.add(new String(hashVal).hashCode()); // Convert to hash to save space
+			ss.reset();
+		}
+			
+		ss.close();
+		return s;
+	}
+	
+	public Set<Integer> getShingles() {		
+		return shingles;
+	}
+	
+	public String getName() {
+		return name;
+	}
+
+}

@@ -1,0 +1,22 @@
+package seed;
+
+public class PatentResult {
+	private String name;
+	private double similarity;
+	public PatentResult(String name, double similarity) {
+		this.name = name;
+		this.similarity = similarity;
+	}
+	
+	public String getSimilarity() {
+		return "%"+(similarity/4);
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public String getUrl() {
+		return "<a href='http://www.google.com/patents/US"+name+"' >"+name+"</a>";
+	}
+}
