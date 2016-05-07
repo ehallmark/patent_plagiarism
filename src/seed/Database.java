@@ -153,7 +153,7 @@ public class Database {
 		// Default
 		if(ps==null)ps = seedConn.prepareStatement(selectPatents);
 		
-		ps.setFetchSize(100); 
+		ps.setFetchSize(50); 
 		System.out.println(ps);
 		ResultSet results = ps.executeQuery();
 		return results;
