@@ -17,7 +17,7 @@ public class Database {
 	private static Connection seedConn;
 	private static Connection mainConn;
 	// private static final String orderByDate = " ORDER BY pub_date::int";
-	private static final String select = " SELECT pub_doc_number, lower(invention_title) as invention_title, lower(abstract) as abstract, lower(substring(description from 0 for least(char_length(description),20000))) as description FROM patent_grant WHERE pub_date::int >= 19960101 AND abstract IS NOT NULL AND description IS NOT NULL and invention_title IS NOT NULL ";
+	private static final String select = " SELECT pub_doc_number, regexp_replace(lower(invention_title), '[^a-z0-9]', 'g') as invention_title, regexp_replace(lower(abstract), '[^a-z0-9]', 'g') as abstract, regexp_replace(lower(substring(description from 0 for least(char_length(description),10000))), '[^a-z0-9]', 'g') as description FROM patent_grant WHERE pub_date::int >= 19960101 AND abstract IS NOT NULL AND description IS NOT NULL and invention_title IS NOT NULL ";
 	private static final String selectPatentsWhere = select
 			+ " AND pub_doc_number != any(?)";
 	private static final String selectPatents = select;
