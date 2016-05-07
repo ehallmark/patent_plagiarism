@@ -51,10 +51,8 @@ public class Database {
 				vals.add(val.toString());
 			});
 			valJoiner.add(vals.toString());
-			System.out.print(p.getName()+' ');
 		});
 		insertStatement.add(valJoiner.toString());
-		System.out.println();
 		
 		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
 		

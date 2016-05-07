@@ -21,7 +21,7 @@ public class Main {
 	private static final Random rand = new Random(SEED);
 	private static List<HashFunction> hashFunctions = new Vector<HashFunction>();
 	private volatile boolean kill = false;
-	public static int FETCH_SIZE = 50;
+	public static int FETCH_SIZE = 25;
 
 	
 	public static void setup() 	{
@@ -50,7 +50,7 @@ public class Main {
 				String[] res = null;
 				try {
 					int count = 0;
-					final int chunkSize = 100;
+					final int chunkSize = 500;
 					int current = 0;
 					List<Patent> patents = new ArrayList<Patent>();
 					while(!kill) { 
@@ -67,10 +67,10 @@ public class Main {
 						// Calculate min hash and lsh 
 						p.setValues(createMinHash(p));
 						patents.add(p);
+						System.out.print(p.getName()+' ');
 						if(current >= chunkSize) {
 							try {
 								Database.insertPatent(patents);
-								if(count%5000==1){Database.commit(); count=1;}
 	
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
@@ -79,9 +79,20 @@ public class Main {
 							patents.clear();
 							current = 0;
 							System.gc();
+							System.out.println();
 						} else {
 							current++;
 						}
+						if(count%2500==1){
+							try {
+								Database.commit();
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							count=1;
+						}
+
 						
 						count++;
 						//Thread.yield();
