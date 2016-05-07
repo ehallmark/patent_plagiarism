@@ -41,6 +41,7 @@ public class Main {
 		queue = new ArrayBlockingQueue<String[]>(5000);
 		Database.setupSeedConn();
 		Database.setupMainConn();
+		Database.setAutoCommit(false);
 		Thread thr = new Thread() {
 			@Override
 			public void run() {
