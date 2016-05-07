@@ -50,12 +50,14 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			ArrayList<PatentResult> results = null;
 			String patent = req.queryParams("patent");
+			Integer limit;
+			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(patent==null) return "Please provide a patent number!";
 			else {patent=patent.trim();}
 			if(!patents.contains(patent)) return "Patent not found!";
 			try {
 				synchronized(Database.class) {
-					results = Database.similarPatents(patent);
+					results = Database.similarPatents(patent,limit);
 				}
 				if(results == null) {
 					return "Unable to find similar patents!";
@@ -78,6 +80,8 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			ArrayList<PatentResult> results = null;
 			String text = req.queryParams("text");
+			Integer limit;
+			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(text==null) return "Please provide some text!";
 			// Create min hash for this text
 			Vector<Integer> MinHashVector;
@@ -91,7 +95,7 @@ public class Search {
 			
 			try {
 				synchronized(Database.class) {
-					results = Database.similarPatents(MinHashVector);
+					results = Database.similarPatents(MinHashVector,limit);
 				}
 			} catch (SQLException sql) {
 				sql.printStackTrace();

@@ -20,6 +20,7 @@ public class Main {
 	private static final Random rand = new Random(SEED);
 	private static List<HashFunction> hashFunctions = new Vector<HashFunction>();
 	private volatile boolean kill = false;
+	public static int FETCH_SIZE = 50;
 
 	
 	public static void setup() 	{
@@ -145,6 +146,7 @@ public class Main {
 	
 	public static void main(String[] args) {
 		try {
+			if(args.length>1) try{FETCH_SIZE=Integer.parseInt(args[1]);}catch(Exception e) {}
 			new Main();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

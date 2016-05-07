@@ -56,7 +56,7 @@ public class Database {
 		ps.close();
 	}
 	
-	public static ArrayList<PatentResult> similarPatents(String patent) throws SQLException {
+	public static ArrayList<PatentResult> similarPatents(String patent, int limit) throws SQLException {
 		// Get the patent's hash values
 		final String selectPatent = "SELECT * FROM patent_min_hash WHERE pub_doc_number = ?";
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
@@ -88,10 +88,11 @@ public class Database {
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=? AND");
 		similarSelect.add(where.toString());
-		similarSelect.add("ORDER BY similarity DESC LIMIT 100");
+		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setString(1, patent);
+		ps2.setInt(2,limit);
 		
 		System.out.println(ps2.toString());
 		
@@ -104,7 +105,7 @@ public class Database {
 
 	}
 	
-	public static ArrayList<PatentResult> similarPatents(Vector<Integer> minHashValues) throws SQLException {
+	public static ArrayList<PatentResult> similarPatents(Vector<Integer> minHashValues, int limit) throws SQLException {
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,"); 
@@ -126,9 +127,10 @@ public class Database {
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM patent_min_hash WHERE");
 		similarSelect.add(where.toString());
-		similarSelect.add("ORDER BY similarity DESC LIMIT 100");
+		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
+		ps2.setInt(1,limit);
 		
 		System.out.println(ps2.toString());
 		
@@ -153,7 +155,7 @@ public class Database {
 		// Default
 		if(ps==null)ps = seedConn.prepareStatement(selectPatents);
 		
-		ps.setFetchSize(50); 
+		ps.setFetchSize(Main.FETCH_SIZE); 
 		System.out.println(ps);
 		ResultSet results = ps.executeQuery();
 		return results;
