@@ -38,7 +38,7 @@ public class Main {
 			return;
 		}
 		setup();
-		queue = new ArrayBlockingQueue<String[]>(1000);
+		queue = new ArrayBlockingQueue<String[]>(5000);
 		Database.setupSeedConn();
 		Database.setupMainConn();
 		Thread thr = new Thread() {
@@ -46,6 +46,7 @@ public class Main {
 			public void run() {
 				String[] res = null;
 				try {
+					int count = 0;
 					while(!kill) {
 						if((res = queue.poll())==null) {Thread.sleep(1); continue;}
 						Patent p;
@@ -62,10 +63,15 @@ public class Main {
 						
 						try {
 							Database.insertPatent(p, MinHashVector);
+							if(count%1000==1)Database.commit();
+
 						} catch (SQLException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
+						
+						
+						count++;
 						//Thread.yield();
 					}
 						
@@ -87,7 +93,7 @@ public class Main {
 						try {
 							System.out.println("Offer rejected");
 							// sleep awhile to let other thread compute
-							if(queue.size() > 100) Thread.sleep(100);
+							if(queue.size() > 200) Thread.sleep(500);
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();

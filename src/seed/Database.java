@@ -153,18 +153,20 @@ public class Database {
 		// Default
 		if(ps==null)ps = seedConn.prepareStatement(selectPatents);
 		
-		ps.setFetchSize(25); 
+		ps.setFetchSize(1000); 
 		System.out.println(ps);
 		ResultSet results = ps.executeQuery();
 		return results;
 	}
 	
-	
+	public static void setAutoCommit(boolean commit) throws SQLException {
+		mainConn.setAutoCommit(commit);
+	}
 	public static void commit() throws SQLException {
 		mainConn.commit();
 	}
 	public static void close() throws SQLException {
-		if(mainConn!=null)mainConn.close(); 
+		if(mainConn!=null){if(!mainConn.getAutoCommit()){mainConn.commit();}mainConn.close(); }
 		if(seedConn!=null)seedConn.close();
 	}
 
