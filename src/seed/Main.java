@@ -30,6 +30,13 @@ public class Main {
 	
 	Main() throws IOException, SQLException {
 		// Get all the patents (chunked N at a time for "efficiency")
+		try {
+			Class.forName("org.postgresql.Driver");
+		} catch (ClassNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return;
+		}
 		setup();
 		queue = new ArrayBlockingQueue<String[]>(1000);
 		Database.setupSeedConn();

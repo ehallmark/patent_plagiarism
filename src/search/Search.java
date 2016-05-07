@@ -22,6 +22,13 @@ public class Search {
 	}
 	
 	public static void server() {
+		try {
+			Class.forName("org.postgresql.Driver");
+		} catch (ClassNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return;
+		}
 		get("/", (req, res) -> {
 			res.type("text/html");
 			StringJoiner template = freshTemplate();
