@@ -3,6 +3,7 @@ package seed;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -49,8 +50,11 @@ public class Main {
 				String[] res = null;
 				try {
 					int count = 0;
-					while(!kill) {
-						if((res = queue.poll())==null) {Thread.sleep(100); continue;}
+					final int chunkSize = 100;
+					int current = 0;
+					List<Patent> patents = new ArrayList<Patent>();
+					while(!kill) { 
+						if((res = queue.poll())==null) {Thread.sleep(50); continue;}
 						Patent p;
 						try {
 							p = new Patent(res[0],res[1],res[2],res[3]);
@@ -61,17 +65,23 @@ public class Main {
 						}
 						
 						// Calculate min hash and lsh 
-						Vector<Integer> MinHashVector = createMinHash(p);
-						
-						try {
-							Database.insertPatent(p, MinHashVector);
-							if(count%1000==1)Database.commit();
-
-						} catch (SQLException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						p.setValues(createMinHash(p));
+						patents.add(p);
+						if(current >= chunkSize) {
+							try {
+								Database.insertPatent(patents);
+								if(count%5000==1){Database.commit(); count=1;}
+	
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							patents.clear();
+							current = 0;
+							System.gc();
+						} else {
+							current++;
 						}
-						
 						
 						count++;
 						//Thread.yield();

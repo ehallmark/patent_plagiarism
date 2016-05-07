@@ -3,11 +3,13 @@ package seed;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Patent {
 	private String name;
 	private Set<Integer> shingles;
+	private List<Integer> values;
 
 	// Constructor
 	public Patent(String inName, String title, String inAbstract, String inDescription) throws Exception {
@@ -16,6 +18,14 @@ public class Patent {
 		shingles.addAll(collectShinglesFrom(title.replaceAll("[^0-9a-z]", "")));
 		shingles.addAll(collectShinglesFrom(inDescription.substring(0, Math.min(inDescription.length(),20000)).replaceAll("[^0-9a-z]", "")));
 		if(shingles.size()<5) throw new Exception();
+	}
+	
+	public List<Integer> getValues() {
+		return values;
+	}
+	
+	public void setValues(List<Integer> values) {
+		this.values = values;
 	}
 
 	private Set<Integer> collectShinglesFrom(String inText) throws IOException {

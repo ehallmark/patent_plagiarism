@@ -32,26 +32,32 @@ public class Database {
 	}
 
 	
-	public static void insertPatent(Patent p, Vector<Integer> values) throws SQLException {
+	public static void insertPatent(List<Patent> patents) throws SQLException {
 		StringJoiner insertStatement = new StringJoiner(" ");
 		StringJoiner columns = new StringJoiner(",","(",")");
-		StringJoiner vals = new StringJoiner(",","(",")");
+		StringJoiner valJoiner = new StringJoiner(","," "," ");
 		insertStatement.add("INSERT INTO patent_min_hash");
 		columns.add("pub_doc_number");
 		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
 			columns.add("m"+i);
 		}
-		vals.add("'"+p.getName()+"'");
 		insertStatement.add(columns.toString());
 		insertStatement.add("VALUES");
-		values.forEach(val->{
-			vals.add(val.toString());
+		// Add patent values as array
+		patents.forEach(p->{
+			StringJoiner vals = new StringJoiner(",","(",")");
+			vals.add("'"+p.getName()+"'");
+			p.getValues().forEach(val->{
+				vals.add(val.toString());
+			});
+			valJoiner.add(vals.toString());
+			System.out.print(p.getName()+' ');
 		});
-		insertStatement.add(vals.toString());
-
+		insertStatement.add(valJoiner.toString());
+		System.out.println();
+		
 		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
 		
-		System.out.println(p.getName());
 		ps.executeUpdate();
 		ps.close();
 	}
