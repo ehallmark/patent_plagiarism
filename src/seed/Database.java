@@ -70,7 +70,7 @@ public class Database {
 
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
-		similarSelect.add("SELECT * from (SELECT pub_doc_number,");
+		similarSelect.add("SELECT pub_doc_number,");
 		StringJoiner join = new StringJoiner("+", "(", ")");
 		// StringJoiner where = new StringJoiner(" or ","(",")");
 		ResultSet results = ps.executeQuery();
@@ -94,7 +94,7 @@ public class Database {
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=?");
 		// similarSelect.add(where.toString());
-		similarSelect.add("ORDER BY similarity DESC LIMIT ?) as temp WHERE SIMILARITY >= 5");
+		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
 				.toString());
@@ -117,7 +117,7 @@ public class Database {
 			Vector<Integer> minHashValues, int limit) throws SQLException {
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
-		similarSelect.add("SELECT * FROM (SELECT pub_doc_number,");
+		similarSelect.add("SELECT pub_doc_number,");
 		StringJoiner join = new StringJoiner("+", "(", ")");
 		// StringJoiner where = new StringJoiner(" or ","(",")");
 		// StringJoiner and;
@@ -138,7 +138,7 @@ public class Database {
 		similarSelect
 				.add("as similarity FROM patent_min_hash");
 		// similarSelect.add(where.toString());
-		similarSelect.add("ORDER BY similarity DESC LIMIT ?) as temp WHERE similarity >= 5");
+		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
 				.toString());
