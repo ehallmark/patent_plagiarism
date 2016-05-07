@@ -50,7 +50,7 @@ public class Main {
 				String[] res = null;
 				try {
 					int count = 0;
-					final int chunkSize = 500;
+					final int chunkSize = 10;
 					int current = 0;
 					List<Patent> patents = new ArrayList<Patent>();
 					while(!kill) { 
