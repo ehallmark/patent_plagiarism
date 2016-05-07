@@ -14,22 +14,22 @@ public class Main {
 	public static final int LEN_SHINGLES = 8;
 	public static final int NUM_BANDS = 50;
 	public static final int LEN_BANDS = 2;
-	public static final int NUM_HASH_FUNCTIONS = NUM_BANDS*LEN_BANDS;
+	public static final int NUM_HASH_FUNCTIONS = NUM_BANDS * LEN_BANDS;
 	public static final int SEED = 342689376;
-	public static final double SIGNIFICANCE_RATIO = 0.15;	
+	public static final double SIGNIFICANCE_RATIO = 0.15;
 	private ArrayBlockingQueue<String[]> queue;
 	private static final Random rand = new Random(SEED);
 	private static List<HashFunction> hashFunctions = new Vector<HashFunction>();
 	private volatile boolean kill = false;
 	public static int FETCH_SIZE = 25;
 
-	
-	public static void setup() 	{
-		for(int i = 0; i < NUM_HASH_FUNCTIONS; i++) {
+	public static void setup() {
+		for (int i = 0; i < NUM_HASH_FUNCTIONS; i++) {
 			hashFunctions.add(new HashFunction(rand.nextInt()));
-		};
+		}
+		;
 	}
-	
+
 	Main() throws IOException, SQLException {
 		// Get all the patents (chunked N at a time for "efficiency")
 		try {
@@ -53,25 +53,28 @@ public class Main {
 					final int chunkSize = 10;
 					int current = 0;
 					List<Patent> patents = new ArrayList<Patent>();
-					while(!kill) { 
-						if((res = queue.poll())==null) {Thread.sleep(50); continue;}
+					while (!kill) {
+						if ((res = queue.poll()) == null) {
+							Thread.sleep(50);
+							continue;
+						}
 						Patent p;
 						try {
-							p = new Patent(res[0],res[1],res[2],res[3]);
+							p = new Patent(res[0], res[1], res[2], res[3]);
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 							continue;
 						}
-						
-						// Calculate min hash and lsh 
+
+						// Calculate min hash and lsh
 						p.setValues(createMinHash(p));
 						patents.add(p);
-						System.out.print(p.getName()+' ');
-						if(current >= chunkSize) {
+						System.out.print(p.getName() + ' ');
+						if (current >= chunkSize) {
 							try {
 								Database.insertPatent(patents);
-	
+
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -83,47 +86,48 @@ public class Main {
 						} else {
 							current++;
 						}
-						if(count%2500==1){
+						if (count % 2500 == 1) {
 							try {
 								Database.commit();
 							} catch (SQLException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
-							count=1;
+							count = 1;
 						}
 
-						
 						count++;
-						//Thread.yield();
+						// Thread.yield();
 					}
-						
+
 				} catch (InterruptedException e) {
 					e.printStackTrace();
-				} 
+				}
 			}
-
 
 		};
 		thr.start();
 		ResultSet results = Database.selectPatents();
 		try {
-			while(results.next()) {
+			while (results.next()) {
 				try {
-					final String[] r = new String[]{results.getString(1),results.getString(2), results.getString(3),results.getString(4)};
-					while(!queue.offer(r)) { 
+					final String[] r = new String[] { results.getString(1),
+							results.getString(2), results.getString(3),
+							results.getString(4) };
+					while (!queue.offer(r)) {
 						// Queue is full
 						try {
 							System.out.println("Offer rejected");
 							// sleep awhile to let other thread compute
-							while(queue.size() > 200) Thread.sleep(500);
+							while (queue.size() > 200)
+								Thread.sleep(500);
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-							
+
 						}
 					}
-					
+
 				} catch (SQLException sql) {
 					sql.printStackTrace();
 				}
@@ -147,27 +151,31 @@ public class Main {
 
 	}
 
-
 	public static Vector<Integer> createMinHash(Patent p) {
 		Vector<Integer> MinHashVector = new Vector<Integer>();
 		Set<Integer> shingles = p.getShingles();
-		hashFunctions.forEach(hash->{
+		hashFunctions.forEach(hash -> {
 			int min = Integer.MAX_VALUE;
-			for(int shingle: shingles) {
+			for (int shingle : shingles) {
 				int h = hash.getHashCode(shingle);
-				if(h<min) min = h;
-			};
+				if (h < min)
+					min = h;
+			}
+			;
 			// Get the minimum value
-			MinHashVector.add(min);
-		});
+				MinHashVector.add(min);
+			});
 		System.gc();
 		return MinHashVector;
 	}
-	
-	
+
 	public static void main(String[] args) {
 		try {
-			if(args.length>1) try{FETCH_SIZE=Integer.parseInt(args[1]);}catch(Exception e) {}
+			if (args.length > 1)
+				try {
+					FETCH_SIZE = Integer.parseInt(args[1]);
+				} catch (Exception e) {
+				}
 			new Main();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

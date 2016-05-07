@@ -12,50 +12,56 @@ public class Patent {
 	private List<Integer> values;
 
 	// Constructor
-	public Patent(String inName, String title, String inAbstract, String inDescription) throws Exception {
+	public Patent(String inName, String title, String inAbstract,
+			String inDescription) throws Exception {
 		name = inName;
 		shingles = collectShinglesFrom(inAbstract.replaceAll("[^0-9a-z]", ""));
 		shingles.addAll(collectShinglesFrom(title.replaceAll("[^0-9a-z]", "")));
-		shingles.addAll(collectShinglesFrom(inDescription.substring(0, Math.min(inDescription.length(),20000)).replaceAll("[^0-9a-z]", "")));
-		if(shingles.size()<5) throw new Exception();
+		shingles.addAll(collectShinglesFrom(inDescription.substring(0,
+				Math.min(inDescription.length(), 20000)).replaceAll(
+				"[^0-9a-z]", "")));
+		if (shingles.size() < 5)
+			throw new Exception();
 	}
-	
+
 	public List<Integer> getValues() {
 		return values;
 	}
-	
+
 	public void setValues(List<Integer> values) {
 		this.values = values;
 	}
 
 	private Set<Integer> collectShinglesFrom(String inText) throws IOException {
 		Set<Integer> s = new HashSet<Integer>();
-		StringReader ss = new StringReader(inText);		
-		int c; 
-		while((c = ss.read()) != -1) {
+		StringReader ss = new StringReader(inText);
+		int c;
+		while ((c = ss.read()) != -1) {
 			ss.mark(Main.LEN_SHINGLES);
 			char[] hashVal = new char[Main.LEN_SHINGLES];
-			hashVal[0] = (char)c;
-			for(int i = 1; i < Main.LEN_SHINGLES; i++) {
-				if((c=ss.read()) != -1) {
-					hashVal[i]=(char)c;
+			hashVal[0] = (char) c;
+			for (int i = 1; i < Main.LEN_SHINGLES; i++) {
+				if ((c = ss.read()) != -1) {
+					hashVal[i] = (char) c;
 				} else {
 					break;
 				}
 			}
-			if(c==-1) break;
-			s.add(new String(hashVal).hashCode()); // Convert to hash to save space
+			if (c == -1)
+				break;
+			s.add(new String(hashVal).hashCode()); // Convert to hash to save
+													// space
 			ss.reset();
 		}
-			
+
 		ss.close();
 		return s;
 	}
-	
-	public Set<Integer> getShingles() {		
+
+	public Set<Integer> getShingles() {
 		return shingles;
 	}
-	
+
 	public String getName() {
 		return name;
 	}
