@@ -21,7 +21,7 @@ public class Main {
 	private static final Random rand = new Random(SEED);
 	private static List<HashFunction> hashFunctions = new Vector<HashFunction>();
 	private volatile boolean kill = false;
-	public static int FETCH_SIZE = 10;
+	public static int FETCH_SIZE = 15;
 
 	public static void setup() {
 		for (int i = 0; i < NUM_HASH_FUNCTIONS; i++) {
@@ -50,7 +50,7 @@ public class Main {
 				String[] res = null;
 				try {
 					int count = 0;
-					final int chunkSize = 100;
+					final int chunkSize = 500;
 					int current = 0;
 					List<Patent> patents = new ArrayList<Patent>();
 					while (!kill) {
