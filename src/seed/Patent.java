@@ -14,7 +14,7 @@ public class Patent {
 		name = inName;
 		shingles = collectShinglesFrom(inAbstract.replaceAll("[^0-9a-z]", ""));
 		shingles.addAll(collectShinglesFrom(title.replaceAll("[^0-9a-z]", "")));
-		shingles.addAll(collectShinglesFrom(inDescription.substring(0, Math.min(inDescription.length(),10000)).replaceAll("[^0-9a-z]", "")));
+		shingles.addAll(collectShinglesFrom(inDescription.substring(0, Math.min(inDescription.length(),20000)).replaceAll("[^0-9a-z]", "")));
 		if(shingles.size()<5) throw new Exception();
 	}
 

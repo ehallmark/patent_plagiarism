@@ -9,7 +9,7 @@ DO language 'plpgsql'
 $$
 DECLARE var_sql text :=  'CREATE TABLE patent_min_hash('
     || string_agg('m' || i::text || ' integer', ',') || ');'
-    FROM generate_series(1,400) As i;
+    FROM generate_series(1,100) As i;
 BEGIN
     EXECUTE var_sql;
 END;

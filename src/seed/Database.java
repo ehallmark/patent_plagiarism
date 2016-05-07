@@ -12,13 +12,14 @@ import java.util.StringJoiner;
 import java.util.Vector;
 
 public class Database {
-	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=";
-	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=";
+	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
+	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static Connection seedConn;
 	private static Connection mainConn;
-
-	private static final String selectPatents = " SELECT pub_doc_number, lower(invention_title) as invention_title, lower(abstract) as abstract, lower(description) as description FROM patent_grant WHERE pub_date::date > '1996-01-01'::date and abstract IS NOT NULL and description IS NOT NULL and invention_title IS NOT NULL ";
-	private static final String selectPatentsWhere = selectPatents+" and pub_doc_number != any(?)";
+	//private static final String orderByDate = " ORDER BY pub_date::int";
+	private static final String select = " SELECT pub_doc_number, lower(invention_title) as invention_title, lower(abstract) as abstract, lower(substring(description from 0 for least(char_length(description),20000))) as description FROM patent_grant WHERE pub_date::int >= 19960101 AND abstract IS NOT NULL AND description IS NOT NULL and invention_title IS NOT NULL ";
+	private static final String selectPatentsWhere = select+" AND pub_doc_number != any(?)";
+	private static final String selectPatents = select;
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
 
 	public static void setupMainConn() throws SQLException {
@@ -50,9 +51,9 @@ public class Database {
 
 		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
 		
-		System.out.println(ps.toString());
+		System.out.println(p.getName());
 		ps.executeUpdate();
-
+		ps.close();
 	}
 	
 	public static ArrayList<PatentResult> similarPatents(String patent) throws SQLException {
@@ -65,18 +66,29 @@ public class Database {
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,"); 
 		StringJoiner join = new StringJoiner("+","(",")");
-
+		StringJoiner where = new StringJoiner(" or ","(",")");
 		ResultSet results = ps.executeQuery();
+		StringJoiner and;
+		int n;
 		if(results.next()) {
-			for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
-				join.add("((m"+i+"="+results.getInt(i)+")::int)");
+			for(int i = 0; i < Main.NUM_BANDS; i++) {
+				and = new StringJoiner(" and ","(",")");
+				for(int j = 0; j < Main.LEN_BANDS; j++) {
+					n = i*Main.LEN_BANDS+j+1;
+					String inner = "(m"+n+"="+results.getInt(n)+")";
+					join.add(inner+"::int");
+					and.add(inner);
+				}
+				where.add(and.toString());
 			}
 		} else {
 			return null;
 		}
 		
 		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=? ORDER BY similarity DESC LIMIT 100");
+		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=? AND");
+		similarSelect.add(where.toString());
+		similarSelect.add("ORDER BY similarity DESC LIMIT 100");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setString(1, patent);
@@ -97,13 +109,24 @@ public class Database {
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,"); 
 		StringJoiner join = new StringJoiner("+","(",")");
-
-		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
-			join.add("((m"+i+"="+minHashValues.get(i-1)+")::int)");
+		StringJoiner where = new StringJoiner(" or ","(",")");
+		StringJoiner and;
+		int n;
+		for(int i = 0; i < Main.NUM_BANDS; i++) {
+			and = new StringJoiner(" and ","(",")");
+			for(int j = 0; j < Main.LEN_BANDS; j++) {
+				n = i*Main.LEN_BANDS+j;
+				String inner = "(m"+n+1+"="+minHashValues.get(n)+")";
+				join.add(inner+"::int");
+				and.add(inner);
+			}
+			where.add(and.toString());
 		}
 
 		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM patent_min_hash ORDER BY similarity DESC LIMIT 100");
+		similarSelect.add("as similarity FROM patent_min_hash WHERE");
+		similarSelect.add(where.toString());
+		similarSelect.add("ORDER BY similarity DESC LIMIT 100");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		
@@ -114,32 +137,34 @@ public class Database {
 		while(results.next()) {
 			patents.add(new PatentResult(results.getString(1),results.getInt(2)));
 		} 
+		
 		return patents;
 	}
 	
 	// We need the seed connection
-	public static ResultSet selectPatents(boolean update) throws SQLException, IOException {
+	public static ResultSet selectPatents() throws SQLException, IOException {
 		PreparedStatement ps = null;
-		if(!update) {
-			List<String> values = getAllPatentStrings();
-			if(values.size()>0) {
-				ps = seedConn.prepareStatement(selectPatentsWhere);
-				ps.setArray(1, seedConn.createArrayOf("text",values.toArray()));
-			} 
-
+		List<String> values = getAllPatentStrings();
+		if(values.size()>0) {
+			ps = seedConn.prepareStatement(selectPatentsWhere);
+			ps.setArray(1, seedConn.createArrayOf("text",values.toArray()));
 		} 
+
 		// Default
 		if(ps==null)ps = seedConn.prepareStatement(selectPatents);
 		
-		ps.setFetchSize(50);
-		System.out.println(ps.toString());
+		ps.setFetchSize(25); 
+		System.out.println(ps);
 		ResultSet results = ps.executeQuery();
 		return results;
 	}
 	
 	
+	public static void commit() throws SQLException {
+		mainConn.commit();
+	}
 	public static void close() throws SQLException {
-		if(mainConn!=null)mainConn.close();
+		if(mainConn!=null)mainConn.close(); 
 		if(seedConn!=null)seedConn.close();
 	}
 

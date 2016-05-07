@@ -9,7 +9,7 @@ public class PatentResult {
 	}
 	
 	public String getSimilarity() {
-		return "%"+(similarity/4);
+		return "%"+(similarity/(Main.NUM_HASH_FUNCTIONS/100));
 	}
 	
 	public String getName() {

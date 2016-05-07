@@ -44,6 +44,7 @@ public class Search {
 			ArrayList<PatentResult> results = null;
 			String patent = req.queryParams("patent");
 			if(patent==null) return "Please provide a patent number!";
+			else {patent=patent.trim();}
 			if(!patents.contains(patent)) return "Patent not found!";
 			try {
 				synchronized(Database.class) {
@@ -72,11 +73,10 @@ public class Search {
 			String text = req.queryParams("text");
 			if(text==null) return "Please provide some text!";
 			// Create min hash for this text
-			Vector<Integer> LSHVector;
+			Vector<Integer> MinHashVector;
 			try {
-				Patent p = new Patent("","",text,"");
-				Vector<Integer> MinHashVector = Main.createMinHash(p);
-				LSHVector = Main.createLSH(MinHashVector);
+				Patent p = new Patent("","",text.toLowerCase(),"");
+				MinHashVector = Main.createMinHash(p);
 			} catch (Exception e) {
 				e.printStackTrace();
 				return "Unable to perform search. Try providing more text!";
@@ -84,7 +84,7 @@ public class Search {
 			
 			try {
 				synchronized(Database.class) {
-					results = Database.similarPatents(LSHVector);
+					results = Database.similarPatents(MinHashVector);
 				}
 			} catch (SQLException sql) {
 				sql.printStackTrace();
