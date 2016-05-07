@@ -49,7 +49,7 @@ public class Main {
 				try {
 					int count = 0;
 					while(!kill) {
-						if((res = queue.poll())==null) {Thread.sleep(1); continue;}
+						if((res = queue.poll())==null) {Thread.sleep(100); continue;}
 						Patent p;
 						try {
 							p = new Patent(res[0],res[1],res[2],res[3]);
@@ -94,7 +94,7 @@ public class Main {
 						try {
 							System.out.println("Offer rejected");
 							// sleep awhile to let other thread compute
-							if(queue.size() > 200) Thread.sleep(500);
+							while(queue.size() > 200) Thread.sleep(500);
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
