@@ -35,11 +35,13 @@ public class Search {
 			String html =  "<h3>By Patent</h3>"
 				+ "<form action='/find_by_patent' method='post'>"
 					+ "<input id='patent' name='patent' />"
-					+ "<button>Find Similar Patents</button>"
+					+ "<button>Find Similar Patents</button><br/><br/>"
+					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' />"
 				+ "</form><br/>"
 				+ "<h3>By Raw Text</h3>"
 				+ "<form action='/find_by_text' method='post'>"
-					+ "<button>Find Similar Patents</button><br/>"
+					+ "<button>Find Similar Patents</button><br/><br/>"
+					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' /><br/>"
 					+ "<textarea rows='10' cols='50' id='text' name='text' ></textarea>"
 				+ "</form>";
 			template.add(html);
@@ -53,7 +55,7 @@ public class Search {
 			Integer limit;
 			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(patent==null) return "Please provide a patent number!";
-			else {patent=patent.trim();}
+			else {patent=patent.toUpperCase().trim().replaceAll("[^0-9A-Z]", "");}
 			if(!patents.contains(patent)) return "Patent not found!";
 			try {
 				synchronized(Database.class) {

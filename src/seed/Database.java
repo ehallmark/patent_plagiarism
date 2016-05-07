@@ -121,7 +121,7 @@ public class Database {
 			and = new StringJoiner(" and ","(",")");
 			for(int j = 0; j < Main.LEN_BANDS; j++) {
 				n = i*Main.LEN_BANDS+j;
-				String inner = "(m"+n+1+"="+minHashValues.get(n)+")";
+				String inner = "(m"+(n+1)+"="+minHashValues.get(n)+")";
 				join.add(inner+"::int");
 				and.add(inner);
 			}
