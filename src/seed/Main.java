@@ -21,7 +21,7 @@ public class Main {
 	private static final Random rand = new Random(SEED);
 	private static List<HashFunction> hashFunctions = new Vector<HashFunction>();
 	private volatile boolean kill = false;
-	public static int FETCH_SIZE = 10;
+	public static int FETCH_SIZE = 20;
 
 	public static void setup() {
 		for (int i = 0; i < NUM_HASH_FUNCTIONS; i++) {
@@ -43,14 +43,12 @@ public class Main {
 		queue = new ArrayBlockingQueue<String[]>(5000);
 		Database.setupSeedConn();
 		Database.setupMainConn();
-		Database.setAutoCommit(false);
 		Thread thr = new Thread() {
 			@Override
 			public void run() {
 				String[] res = null;
 				try {
-					int count = 0;
-					final int chunkSize = FETCH_SIZE;
+					final int chunkSize = 10;
 					int current = 0;
 					List<Patent> patents = new ArrayList<Patent>();
 					while (!kill) {
@@ -86,24 +84,10 @@ public class Main {
 						} else {
 							current++;
 						}
-						if (count % 2500 == 1) {
-							try {
-								Database.commit();
-							} catch (SQLException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							count = 1;
-						}
-
-						count++;
-						// Thread.yield();
 					}
 					if(!patents.isEmpty()) {
 						try {
 							Database.insertPatent(patents);
-							Database.commit();
-
 						} catch (SQLException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
