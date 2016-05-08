@@ -19,7 +19,7 @@ public class Database {
 	private static Connection seedConn;
 	private static Connection mainConn;
 	// private static final String orderByDate = " ORDER BY pub_date::int";
-	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(invention_title), '[^a-z0-9]', 'g') as invention_title, regexp_replace(lower(abstract), '[^a-z0-9]', 'g') as abstract, regexp_replace(lower(substring(description from 0 for least(char_length(description),10000))), '[^a-z0-9]', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? AND abstract IS NOT NULL AND description IS NOT NULL and invention_title IS NOT NULL ";
+	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(coalesce(invention_title,'')), '[^a-z0-9]', 'g') as invention_title, regexp_replace(lower(coalesce(abstract,'')), '[^a-z0-9]', 'g') as abstract, regexp_replace(lower(substring(coalesce(description,'') from 0 for least(char_length(coalesce(description,'')),10000))), '[^a-z0-9]', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? ";
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
 	private static final String selectLastIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 
