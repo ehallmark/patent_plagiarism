@@ -12,12 +12,12 @@ public class Patent {
 	private List<Integer> values;
 
 	// Constructor
-	public Patent(String inName, String title, String inAbstract,
-			String inDescription) throws Exception {
-		name = inName;
-		shingles = collectShinglesFrom(inAbstract);
-		shingles.addAll(collectShinglesFrom(title));
-		shingles.addAll(collectShinglesFrom(inDescription));
+	public Patent(Object inName, Object title, Object inAbstract,
+			Object inDescription) throws Exception {
+		name = (String)inName;
+		shingles = collectShinglesFrom((String)inAbstract);
+		shingles.addAll(collectShinglesFrom((String)title));
+		shingles.addAll(collectShinglesFrom((String)inDescription));
 		if (shingles.size() < 5)
 			throw new Exception();
 	}

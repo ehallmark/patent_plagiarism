@@ -99,6 +99,16 @@ public class Main {
 						count++;
 						// Thread.yield();
 					}
+					if(!patents.isEmpty()) {
+						try {
+							Database.insertPatent(patents);
+							Database.commit();
+
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -142,6 +152,7 @@ public class Main {
 			e.printStackTrace();
 		} finally {
 			try {
+				Database.updateLastDate();
 				Database.close();
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block

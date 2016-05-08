@@ -18,4 +18,9 @@ $$ ;
 ALTER TABLE patent_min_hash ADD COLUMN pub_doc_number varchar(100) PRIMARY KEY;
 ALTER TABLE patent_min_hash ADD COLUMN uid serial;
 
+CREATE TABLE last_min_hash_ingest(
+	last_uid bigint,
+	table_name varchar(100)
+);
 
+INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (19960101,'patent_grant');

@@ -6,6 +6,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -14,14 +15,13 @@ import java.util.Vector;
 public class Database {
 	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
 	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
+	private static final String lastIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
 	private static Connection seedConn;
 	private static Connection mainConn;
 	// private static final String orderByDate = " ORDER BY pub_date::int";
-	private static final String select = " SELECT pub_doc_number, regexp_replace(lower(invention_title), '[^a-z0-9]', 'g') as invention_title, regexp_replace(lower(abstract), '[^a-z0-9]', 'g') as abstract, regexp_replace(lower(substring(description from 0 for least(char_length(description),10000))), '[^a-z0-9]', 'g') as description FROM patent_grant WHERE pub_date::int >= 19960101 AND abstract IS NOT NULL AND description IS NOT NULL and invention_title IS NOT NULL ";
-	private static final String selectPatentsWhere = select
-			+ " AND pub_doc_number != any(?)";
-	private static final String selectPatents = select;
+	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(invention_title), '[^a-z0-9]', 'g') as invention_title, regexp_replace(lower(abstract), '[^a-z0-9]', 'g') as abstract, regexp_replace(lower(substring(description from 0 for least(char_length(description),10000))), '[^a-z0-9]', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? AND abstract IS NOT NULL AND description IS NOT NULL and invention_title IS NOT NULL ";
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
+	private static final String selectLastIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
@@ -158,20 +158,17 @@ public class Database {
 
 	// We need the seed connection
 	public static ResultSet selectPatents() throws SQLException, IOException {
-		PreparedStatement ps = null;
-		List<String> values = getAllPatentStrings();
-		if (values.size() > 0) {
-			ps = seedConn.prepareStatement(selectPatentsWhere);
-			ps.setArray(1, seedConn.createArrayOf("text", values.toArray()));
+		PreparedStatement ps = mainConn.prepareStatement(selectLastIngestDate);
+		ResultSet res = ps.executeQuery();
+		PreparedStatement ps2 = seedConn.prepareStatement(selectPatents);
+		if(res.next()) {
+			ps2.setInt(1, res.getInt(1));
+		} else {
+			ps2.setInt(1, 0);
 		}
-
-		// Default
-		if (ps == null)
-			ps = seedConn.prepareStatement(selectPatents);
-
-		ps.setFetchSize(Main.FETCH_SIZE);
-		System.out.println(ps);
-		ResultSet results = ps.executeQuery();
+		ps2.setFetchSize(Main.FETCH_SIZE);
+		System.out.println(ps2);
+		ResultSet results = ps2.executeQuery();
 		return results;
 	}
 
@@ -181,6 +178,18 @@ public class Database {
 
 	public static void commit() throws SQLException {
 		mainConn.commit();
+	}
+	
+	public static void updateLastDate() throws SQLException {
+		// update last ingest
+		LocalDateTime date = LocalDateTime.now();
+		int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
+		System.out.println("Last Date: "+lastDate);
+		PreparedStatement ps = mainConn.prepareStatement(lastIngest);
+		ps.setInt(1, lastDate);
+		ps.executeUpdate();
+		mainConn.commit();
+		ps.close();
 	}
 
 	public static void close() throws SQLException {
