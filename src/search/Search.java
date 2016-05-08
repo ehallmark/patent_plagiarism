@@ -34,14 +34,16 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			String html =  "<h3>By Patent</h3>"
 				+ "<form action='/find_by_patent' method='post'>"
-					+ "<input id='patent' name='patent' />"
-					+ "<button>Find Similar Patents</button><br/><br/>"
-					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' />"
+					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' /><br/>"
+					+ "<label style='margin-right:15px;'>Patent Number:</label><input id='patent' name='patent' /><br/>"
+					+ "<label style='margin-right:15px;'>Fast?</label><input name='fast' id='fast' type='checkbox' value='yes' /><br/>"
+					+ "<button>Find Similar Patents</button>"
 				+ "</form><br/>"
 				+ "<h3>By Raw Text</h3>"
 				+ "<form action='/find_by_text' method='post'>"
 					+ "<button>Find Similar Patents</button><br/><br/>"
 					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' /><br/>"
+					+ "<label style='margin-right:15px;'>Fast?</label><input name='fast' id='fast' type='checkbox' value='yes' /><br/>"
 					+ "<textarea rows='10' cols='50' id='text' name='text' ></textarea>"
 				+ "</form>";
 			template.add(html);
@@ -56,10 +58,15 @@ public class Search {
 			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(patent==null) return "Please provide a patent number!";
 			else {patent=patent.toUpperCase().trim().replaceAll("[^0-9A-Z]", "");}
+
+			boolean fast;
+			if(req.queryParams("fast")==null) fast = false;
+			else fast = true;
+			
 			if(!patents.contains(patent)) return "Patent not found!";
 			try {
 				synchronized(Database.class) {
-					results = Database.similarPatents(patent,limit);
+					results = Database.similarPatents(patent,limit,fast);
 				}
 				if(results == null) {
 					return "Unable to find similar patents!";
@@ -85,6 +92,11 @@ public class Search {
 			Integer limit;
 			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(text==null) return "Please provide some text!";
+			
+			boolean fast;
+			if(req.queryParams("fast")==null) fast = false;
+			else fast = true;
+			
 			// Create min hash for this text
 			Vector<Integer> MinHashVector;
 			try {
@@ -97,7 +109,7 @@ public class Search {
 			
 			try {
 				synchronized(Database.class) {
-					results = Database.similarPatents(MinHashVector,limit);
+					results = Database.similarPatents(MinHashVector,limit,fast);
 				}
 			} catch (SQLException sql) {
 				sql.printStackTrace();

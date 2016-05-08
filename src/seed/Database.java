@@ -54,15 +54,14 @@ public class Database {
 		});
 		insertStatement.add(valJoiner.toString());
 
-		PreparedStatement ps = mainConn.prepareStatement(insertStatement
-				.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
 
 		ps.executeUpdate();
 		ps.close();
 	}
 
 	public static ArrayList<PatentResult> similarPatents(String patent,
-			int limit) throws SQLException {
+			int limit, boolean fast) throws SQLException {
 		// Get the patent's hash values
 		final String selectPatent = "SELECT * FROM patent_min_hash WHERE pub_doc_number = ?";
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
@@ -72,20 +71,20 @@ public class Database {
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,");
 		StringJoiner join = new StringJoiner("+", "(", ")");
-		// StringJoiner where = new StringJoiner(" or ","(",")");
+		StringJoiner where = new StringJoiner(" or ","AND (",")");
 		ResultSet results = ps.executeQuery();
-		// StringJoiner and;
+		StringJoiner and;
 		int n;
 		if (results.next()) {
 			for (int i = 0; i < Main.NUM_BANDS; i++) {
-				// and = new StringJoiner(" and ","(",")");
+				and = new StringJoiner(" and ","(",")");
 				for (int j = 0; j < Main.LEN_BANDS; j++) {
 					n = i * Main.LEN_BANDS + j + 1;
 					String inner = "(m" + n + "=" + results.getInt(n) + ")";
 					join.add(inner + "::int");
-					// and.add(inner);
+					and.add(inner);
 				}
-				// where.add(and.toString());
+				where.add(and.toString());
 			}
 		} else {
 			return null;
@@ -93,7 +92,7 @@ public class Database {
 
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=?");
-		// similarSelect.add(where.toString());
+		if(fast)similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
@@ -114,30 +113,29 @@ public class Database {
 	}
 
 	public static ArrayList<PatentResult> similarPatents(
-			Vector<Integer> minHashValues, int limit) throws SQLException {
+			Vector<Integer> minHashValues, int limit, boolean fast) throws SQLException {
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,");
 		StringJoiner join = new StringJoiner("+", "(", ")");
-		// StringJoiner where = new StringJoiner(" or ","(",")");
-		// StringJoiner and;
+		StringJoiner where = new StringJoiner(" or ","WHERE (",")");
+		StringJoiner and;
 		int n;
 		for (int i = 0; i < Main.NUM_BANDS; i++) {
-			// and = new StringJoiner(" and ","(",")");
+			and = new StringJoiner(" and ","(",")");
 			for (int j = 0; j < Main.LEN_BANDS; j++) {
 				n = i * Main.LEN_BANDS + j;
 				String inner = "(m" + (n + 1) + "=" + minHashValues.get(n)
 						+ ")";
 				join.add(inner + "::int");
-				// and.add(inner);
+				and.add(inner);
 			}
-			// where.add(and.toString());
+		    where.add(and.toString());
 		}
 
 		similarSelect.add(join.toString());
-		similarSelect
-				.add("as similarity FROM patent_min_hash");
-		// similarSelect.add(where.toString());
+		similarSelect.add("as similarity FROM patent_min_hash");
+		if(fast)similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
