@@ -188,7 +188,6 @@ public class Database {
 		PreparedStatement ps = mainConn.prepareStatement(lastIngest);
 		ps.setInt(1, lastDate);
 		ps.executeUpdate();
-		mainConn.commit();
 		ps.close();
 	}
 
