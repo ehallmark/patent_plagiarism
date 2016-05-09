@@ -20,11 +20,12 @@ public class Database {
 	private static String compdbUrl = "jdbc:postgresql://data.gttgrp.com/compdb_development?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
 	private final static String selectReelFrames = "select t.name, array_agg(r.reel::text||':'||r.frame::text) as reel_frames from technologies as t inner join deals_technologies as dt on (t.id = dt.technology_id) inner join deals on (dt.deal_id=deals.id) inner join recordings as r on (deals.id=r.deal_id) group by t.name order by t.name";
-	private final static String selectTechnologiesByReelFrame = "select array_to_string(array_agg(substring(regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') || regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') from 0 for 100000)),'') as abstract from patent_assignment_property_document as p inner join patent_grant as p2 on (p.doc_number=p2.pub_doc_number) where assignment_reel_frame = any(?) limit 1";
+	private final static String selectTechnologiesByReelFrame = "select substring(array_to_string(array_agg(substring(regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') || regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') from 0 for (1000000/?))),'') from 0 for 1000000) as abstract from patent_assignment_property_document as p inner join patent_grant as p2 on (p.doc_number=p2.pub_doc_number) where assignment_reel_frame = any(?) limit 1";
 	private static Connection seedConn;
 	private static Connection mainConn;
 	private static Connection compdbConn;
 	// private static final String orderByDate = " ORDER BY pub_date::int";
+	private static final String getPatentCount = "select count(distinct(doc_number)) from patent_assignment_property_document where assignment_reel_frame = any(?)";
 	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') as invention_title, regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') as abstract, regexp_replace(lower(substring(coalesce(description,'') from 0 for least(char_length(coalesce(description,'')),10000))), '[^a-z]', '', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? ";
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
 	private static final String selectLastIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
@@ -252,14 +253,23 @@ public class Database {
 		}
 		pre.close();
 		System.gc();
-		// Then we get the relevant text for each technology
+		// Then we get the relevant text for each technology (must also get patent count)
 		reel_frames.forEach((k,v)->{
 			try{
-				PreparedStatement ps = seedConn.prepareStatement(selectTechnologiesByReelFrame);
+				PreparedStatement ps = seedConn.prepareStatement(getPatentCount);
 				ps.setArray(1, v);
 				ResultSet rs = ps.executeQuery();
 				if(rs.next()) {
-					technologies.add(new Technology(k,rs.getString(1)));
+					int count = rs.getInt(1);
+					rs.close();
+					ps.close();
+					PreparedStatement ps2 = seedConn.prepareStatement(selectTechnologiesByReelFrame);
+					ps2.setInt(1, count);
+					ps2.setArray(2, v);
+					ResultSet rs2 = ps2.executeQuery();
+					if(rs2.next()) {
+						technologies.add(new Technology(k,rs2.getString(1)));
+					}
 				}
 				rs.close();
 				ps.close();
