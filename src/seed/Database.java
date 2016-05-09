@@ -247,21 +247,16 @@ public class Database {
 		List<Technology> technologies = new ArrayList<Technology>();
 		PreparedStatement pre = compdbConn.prepareStatement(selectReelFrames);
 		ResultSet res = pre.executeQuery();
-		Hashtable<String,Array> reel_frames = new Hashtable<String,Array>();
 		while (res.next()) {
-			reel_frames.put(res.getString(1),res.getArray(2));
-		}
-		pre.close();
-		System.gc();
-		// Then we get the relevant text for each technology
-		reel_frames.forEach((k,v)->{
 			try{
 				PreparedStatement ps = seedConn.prepareStatement(selectTechnologiesByReelFrame);
-				ps.setArray(1, v);
+				ps.setArray(1, res.getArray(2));
 				ResultSet rs = ps.executeQuery();
 				if(rs.next()) {
-					technologies.add(new Technology(k,rs.getString(1)));
+					technologies.add(new Technology(res.getString(1),rs.getString(1)));
 				}
+				rs.close();
+				ps.close();
 				
 				System.gc();
 			}catch(IOException e) {
@@ -270,9 +265,9 @@ public class Database {
 				e.printStackTrace();
 			}
 			System.out.println(k);
-		
-		});
-		reel_frames = null;
+		}
+		pre.close();
+		System.gc();
 		System.gc();
 		return technologies;
 	}
