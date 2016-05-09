@@ -234,7 +234,6 @@ public class Database {
 			vals.add(val.toString());
 		});
 		insertStatement.add(vals.toString());
-		vals = null;
 		System.gc();
 		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
 		//System.out.println(ps);
@@ -252,6 +251,7 @@ public class Database {
 			reel_frames.put(res.getString(1),res.getArray(2));
 		}
 		pre.close();
+		System.gc();
 		// Then we get the relevant text for each technology
 		reel_frames.forEach((k,v)->{
 			try{
@@ -270,7 +270,10 @@ public class Database {
 				e.printStackTrace();
 			}
 			System.out.println(k);
+		
 		});
+		reel_frames = null;
+		System.gc();
 		return technologies;
 	}
 
