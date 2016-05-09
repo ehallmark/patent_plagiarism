@@ -252,19 +252,19 @@ public class Database {
 				PreparedStatement ps = seedConn.prepareStatement(selectTechnologiesByReelFrame);
 				ps.setArray(1, res.getArray(2));
 				ResultSet rs = ps.executeQuery();
+				String name = res.getString(1);
 				if(rs.next()) {
-					technologies.add(new Technology(res.getString(1),rs.getString(1)));
+					technologies.add(new Technology(name,rs.getString(1)));
 				}
 				rs.close();
 				ps.close();
-				
+				System.out.println(name);
 				System.gc();
 			}catch(IOException e) {
 				e.printStackTrace();
 			} catch(SQLException e) {
 				e.printStackTrace();
 			}
-			System.out.println(k);
 		}
 		pre.close();
 		System.gc();
