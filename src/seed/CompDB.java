@@ -42,19 +42,25 @@ public class CompDB {
 
 	public static Vector<Integer> createMinHash(Technology p) {
 		Vector<Integer> MinHashVector = new Vector<Integer>();
-		List<Set<Integer>> allShingles = p.getShingles();
-		allShingles.forEach(shingles->{
-			hashFunctions.forEach(hash -> {
-				int min = Integer.MAX_VALUE;
-				for (int shingle : shingles) {
-					int h = hash.getHashCode(shingle);
-					if (h < min)
-						min = h;
+		Set<Integer> shingles = p.getShingles();
+		hashFunctions.forEach(hash -> {
+			int[] min = new int[10];
+			for(int i = 0; i < 10; i++) {
+				min[i] = Integer.MAX_VALUE;
+			}
+			for (int shingle : shingles) {
+				int h = hash.getHashCode(shingle);
+				for(int i = 0; i < 10; i++) {
+					if(h<min[i]) {
+						min[i]=h; break;
+					}
 				}
-				;
-				// Get the minimum value
-					MinHashVector.add(min);
-			});
+			}
+			;
+			// Get the minimum values
+			for(int i = 0; i < 10; i++) {
+				MinHashVector.add(min[i]);
+			}
 		});
 
 		System.gc();

@@ -2,7 +2,6 @@ package seed;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,18 +9,13 @@ import java.util.Vector;
 
 public class Technology {
 	private String name;
-	private List<Set<Integer>> shingles;
+	private Set<Integer> shingles;
 	private List<Integer> values;
 
 	// Constructor
 	public Technology(String inName, String text) throws IOException {
 		this.name = inName;
-		shingles = new ArrayList<Set<Integer>>();
-		int interval = text.length()/10;
-		for(int i = 0; i < 10; i += 1) {
-			int n = i*interval;
-			shingles.add(collectShinglesFrom(text.substring(n,n+interval)));
-		}
+		shingles = collectShinglesFrom(text);
 	}
 
 	private Set<Integer> collectShinglesFrom(String inText) throws IOException {
@@ -50,7 +44,7 @@ public class Technology {
 		return s;
 	}
 
-	public List<Set<Integer>> getShingles() {
+	public Set<Integer> getShingles() {
 		return shingles;
 	}
 
