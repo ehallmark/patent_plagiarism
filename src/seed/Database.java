@@ -1,6 +1,7 @@
 package seed;
 
 import java.io.IOException;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -8,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.Vector;
@@ -15,14 +17,24 @@ import java.util.Vector;
 public class Database {
 	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
 	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
+	private static String compdbUrl = "jdbc:postgresql://data.gttgrp.com/compdb_development?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
+	private final static String selectReelFrames = "select t.name, array_agg(r.reel::text||':'||r.frame::text) as reel_frames from technologies as t inner join deals_technologies as dt on (t.id = dt.technology_id) inner join deals on (dt.deal_id=deals.id) inner join recordings as r on (deals.id=r.deal_id) group by t.name order by t.name";
+	private final static String selectTechnologiesByReelFrame = "select array_to_string(array_agg(substring(regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') || regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') from 0 for 100000)),'') as abstract from patent_assignment_property_document as p inner join patent_grant as p2 on (p.doc_number=p2.pub_doc_number) where assignment_reel_frame = any(?) limit 1";
 	private static Connection seedConn;
 	private static Connection mainConn;
+	private static Connection compdbConn;
 	// private static final String orderByDate = " ORDER BY pub_date::int";
-	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(coalesce(invention_title,'')), '[^a-z0-9]', 'g') as invention_title, regexp_replace(lower(coalesce(abstract,'')), '[^a-z0-9]', 'g') as abstract, regexp_replace(lower(substring(coalesce(description,'') from 0 for least(char_length(coalesce(description,'')),10000))), '[^a-z0-9]', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? ";
+	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') as invention_title, regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') as abstract, regexp_replace(lower(substring(coalesce(description,'') from 0 for least(char_length(coalesce(description,'')),10000))), '[^a-z]', '', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? ";
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
 	private static final String selectLastIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 
+	
+	public static void setupCompDBConn() throws SQLException {
+		compdbConn = DriverManager.getConnection(compdbUrl);
+
+	}
+	
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
 	}
@@ -100,8 +112,6 @@ public class Database {
 		ps2.setString(1, patent);
 		ps2.setInt(2, limit);
 
-		System.out.println(ps2.toString());
-
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
 		results = ps2.executeQuery();
 		while (results.next()) {
@@ -142,8 +152,6 @@ public class Database {
 				.toString());
 		ps2.setInt(1, limit);
 
-		System.out.println(ps2.toString());
-
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
 		ResultSet results = ps2.executeQuery();
 		while (results.next()) {
@@ -165,7 +173,6 @@ public class Database {
 			ps2.setInt(1, 0);
 		}
 		ps2.setFetchSize(Main.FETCH_SIZE);
-		System.out.println(ps2);
 		ResultSet results = ps2.executeQuery();
 		return results;
 	}
@@ -182,7 +189,6 @@ public class Database {
 		// update last ingest
 		LocalDateTime date = LocalDateTime.now();
 		int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
-		System.out.println("Last Date: "+lastDate);
 		PreparedStatement ps = mainConn.prepareStatement(lastIngest);
 		ps.setInt(1, lastDate);
 		ps.executeUpdate();
@@ -210,5 +216,62 @@ public class Database {
 		}
 		return values;
 	}
+
+	public static void insertTechnology(Technology t) throws SQLException {
+		StringJoiner insertStatement = new StringJoiner(" ");
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+		insertStatement.add("INSERT INTO technology_min_hash");
+		columns.add("name");
+		for (int i = 1; i <= (Main.NUM_HASH_FUNCTIONS*10); i++) {
+			columns.add("m" + i);
+		}
+		insertStatement.add(columns.toString());
+		insertStatement.add("VALUES");
+		// Add patent values as array
+		StringJoiner vals = new StringJoiner(",", "(", ")");
+		vals.add("'" + t.getName() + "'");
+		t.getValues().forEach(val -> {
+			vals.add(val.toString());
+		});
+		insertStatement.add(vals.toString());
+
+		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
+		System.out.println(ps);
+		ps.executeUpdate();
+		ps.close();
+	}
+
+	public static List<Technology> selectTechnologies() throws SQLException {
+		// First we get a list of reel frames for each technology from CompDB
+		List<Technology> technologies = new ArrayList<Technology>();
+		PreparedStatement pre = compdbConn.prepareStatement(selectReelFrames);
+		ResultSet res = pre.executeQuery();
+		Hashtable<String,Array> reel_frames = new Hashtable<String,Array>();
+		while (res.next()) {
+			reel_frames.put(res.getString(1),res.getArray(2));
+		}
+		pre.close();
+		// Then we get the relevant text for each technology
+		reel_frames.forEach((k,v)->{
+			try{
+				PreparedStatement ps = seedConn.prepareStatement(selectTechnologiesByReelFrame);
+				ps.setArray(1, v);
+				ResultSet rs = ps.executeQuery();
+				if(rs.next()) {
+					technologies.add(new Technology(k,rs.getString(1)));
+				}
+				rs.close();
+				ps.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+			System.out.println(k);
+		});
+		return technologies;
+	}
+
+
 
 }

@@ -4,23 +4,31 @@
 
 DROP TABLE IF EXISTS patent_min_hash; 
 DROP SEQUENCE IF EXISTS patent_min_hash_uid_seq;
+DROP TABLE IF EXISTS technology_min_hash; 
+DROP SEQUENCE IF EXISTS technology_min_hash_uid_seq;
+DROP TABLE IF EXISTS last_min_hash_ingest;
 
 DO language 'plpgsql'
 $$
-DECLARE var_sql text :=  'CREATE TABLE patent_min_hash('
+DECLARE patent_hash text :=  'CREATE TABLE patent_min_hash('
     || string_agg('m' || i::text || ' integer', ',') || ');'
-    FROM generate_series(1,100) As i;
+    FROM generate_series(1,100) As i; tech_hash text :=  'CREATE TABLE technology_min_hash('
+    || string_agg('m' || i::text || ' integer', ',') || ');'
+    FROM generate_series(1,1000) As i;
 BEGIN
-    EXECUTE var_sql;
+    EXECUTE patent_hash; EXECUTE tech_hash;
 END;
 $$ ;
 
 ALTER TABLE patent_min_hash ADD COLUMN pub_doc_number varchar(100) PRIMARY KEY;
 ALTER TABLE patent_min_hash ADD COLUMN uid serial;
 
+ALTER TABLE technology_min_hash ADD COLUMN name varchar(250) PRIMARY KEY;
+ALTER TABLE technology_min_hash ADD COLUMN uid serial;
+
 CREATE TABLE last_min_hash_ingest(
 	last_uid bigint,
 	table_name varchar(100)
 );
 
-INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (19960101,'patent_grant');
+INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (20130101,'patent_grant');
