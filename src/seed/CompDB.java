@@ -34,18 +34,7 @@ public class CompDB {
 		Database.setupCompDBConn();
 		Database.setupMainConn();
 
-		List<Technology> technologies = Database.selectTechnologies();
-		technologies.forEach(t->{
-			try {
-				t.setValues(createMinHash(t));
-				System.gc();
-				Database.insertTechnology(t);
-				System.out.println("COMMIT!!!");
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		});
+		Database.ingestTechnologies();
 
 		Database.close();
 

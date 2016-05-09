@@ -1,7 +1,6 @@
 package seed;
 
 import java.io.IOException;
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -9,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.Vector;
@@ -242,9 +240,8 @@ public class Database {
 		ps.close();
 	}
 
-	public static List<Technology> selectTechnologies() throws SQLException {
+	public static void ingestTechnologies() throws SQLException {
 		// First we get a list of reel frames for each technology from CompDB
-		List<Technology> technologies = new ArrayList<Technology>();
 		PreparedStatement pre = compdbConn.prepareStatement(selectReelFrames);
 		ResultSet res = pre.executeQuery();
 		while (res.next()) {
@@ -254,7 +251,10 @@ public class Database {
 				ResultSet rs = ps.executeQuery();
 				String name = res.getString(1);
 				if(rs.next()) {
-					technologies.add(new Technology(name,rs.getString(1)));
+					Technology t = new Technology(name,rs.getString(1));
+					t.setValues(CompDB.createMinHash(t));
+					insertTechnology(t);
+					t=null;
 				}
 				rs.close();
 				ps.close();
@@ -268,8 +268,6 @@ public class Database {
 		}
 		pre.close();
 		System.gc();
-		System.gc();
-		return technologies;
 	}
 
 
