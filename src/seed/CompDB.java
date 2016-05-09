@@ -38,6 +38,7 @@ public class CompDB {
 		technologies.forEach(t->{
 			try {
 				t.setValues(createMinHash(t));
+				System.gc();
 				Database.insertTechnology(t);
 				System.out.println("COMMIT!!!");
 			} catch (Exception e) {

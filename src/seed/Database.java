@@ -234,9 +234,10 @@ public class Database {
 			vals.add(val.toString());
 		});
 		insertStatement.add(vals.toString());
-
+		vals = null;
+		System.gc();
 		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
-		System.out.println(ps);
+		//System.out.println(ps);
 		ps.executeUpdate();
 		ps.close();
 	}
@@ -262,6 +263,7 @@ public class Database {
 				}
 				rs.close();
 				ps.close();
+				System.gc();
 			}catch(IOException e) {
 				e.printStackTrace();
 			} catch(SQLException e) {
