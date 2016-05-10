@@ -33,10 +33,10 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			String html =  "<h3>By Patent</h3>"
 				+ "<form action='/find_by_patent' method='post'>"
+					+ "<button>Find Similar Patents</button><br/><br />"
 					+ "<label style='margin-right:15px;'>Patent Number:</label><input id='patent' name='patent' /><br/>"
 					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' /><br/>"
 					+ "<label style='margin-right:15px;'>Technology Estimate?</label><input name='technology' id='technology' type='checkbox' value='yes' /><br/>"
-					+ "<button>Find Similar Patents</button>"
 				+ "</form><br/>"
 				+ "<h3>By Raw Text</h3>"
 				+ "<form action='/find_by_text' method='post'>"
