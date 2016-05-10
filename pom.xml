@@ -40,5 +40,10 @@
   		<artifactId>postgresql</artifactId>
   		<version>9.4-1206-jdbc42</version>
   	</dependency>
+  	<dependency>
+  		<groupId>edu.stanford.nlp</groupId>
+  		<artifactId>stanford-corenlp</artifactId>
+  		<version>3.6.0</version>
+  	</dependency>
   </dependencies>
 </project>

@@ -10,7 +10,7 @@ public class TechnologyResult {
 	}
 
 	public String getSimilarity() {
-		return "%" + (int) (similarity/5);
+		return "%" + (int) (similarity);
 	}
 
 	public String getName() {

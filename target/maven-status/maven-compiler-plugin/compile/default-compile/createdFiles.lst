@@ -1,8 +1,11 @@
 seed/Database.class
 seed/HashFunction.class
+seed/Technology.class
 search/Search.class
 seed/Main$1.class
 seed/PatentResult.class
 seed/Main.class
 seed/Patent.class
 seed/ArrayHelper.class
+seed/TechnologyResult.class
+seed/CompDB.class

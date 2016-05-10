@@ -296,12 +296,13 @@ public class Database {
 		ResultSet results = ps.executeQuery();
 		if (results.next()) {
 			int delim = 10;
-			int size = 5;
-			for (int i = 0; i < Main.NUM_HASH_FUNCTIONS; i++) {				
+			int size = 10;
+			for (int i = 0; i < Main.NUM_HASH_FUNCTIONS; i++) {
+				StringJoiner merge = new StringJoiner(" OR ","CASE WHEN (",") THEN 1 ELSE 0 END");
 				for(int j = 1; j <= size; j++) {
-					String inner = "(m" + (i+1) + "=" + results.getInt(i*delim+j) + ")";
-					join.add(inner + "::int");
+					merge.add("(m" + (i*delim+j) + "=" + results.getInt(i+1) + ")");
 				}
+				join.add(merge.toString());
 
 			}
 		} else {
