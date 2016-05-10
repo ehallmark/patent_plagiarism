@@ -2,9 +2,9 @@ package seed;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.Vector;
 
 public class CompDB {
@@ -40,31 +40,27 @@ public class CompDB {
 
 	}
 
-	public static Vector<Integer> createMinHash(Technology p) {
-		Vector<Integer> MinHashVector = new Vector<Integer>();
-		Set<Integer> shingles = p.getShingles();
-		hashFunctions.forEach(hash -> {
-			int[] min = new int[10];
-			for(int i = 0; i < 10; i++) {
-				min[i] = Integer.MAX_VALUE;
-			}
-			for (int shingle : shingles) {
-				int h = hash.getHashCode(shingle);
-				for(int i = 0; i < 10; i++) {
-					if(h<min[i]) {
-						min[i]=h; break;
+	public static List<Vector<Integer>> createMinHash(Technology p) {
+		List<Vector<Integer>> toReturn = new ArrayList<Vector<Integer>>();
+		p.getShingles().forEach(shingles->{
+			Vector<Integer> MinHashVector = new Vector<Integer>();
+			hashFunctions.forEach(hash -> {
+				int min = Integer.MAX_VALUE;
+				for (int shingle : shingles) {
+					int h = hash.getHashCode(shingle);
+					if(h<min) {
+						min=h;
 					}
 				}
-			}
-			;
-			// Get the minimum values
-			for(int i = 0; i < 10; i++) {
-				MinHashVector.add(min[i]);
-			}
+				;
+				// Get the minimum value
+				MinHashVector.add(min);	
+			});
+			toReturn.add(MinHashVector);
+			System.gc();
 		});
 
-		System.gc();
-		return MinHashVector;
+		return toReturn;
 	}
 
 	public static void main(String[] args) {

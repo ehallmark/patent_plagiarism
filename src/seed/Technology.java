@@ -2,6 +2,9 @@ package seed;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.sql.Array;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -9,13 +12,18 @@ import java.util.Vector;
 
 public class Technology {
 	private String name;
-	private Set<Integer> shingles;
-	private List<Integer> values;
+	private List<Set<Integer>> shingles;
+	private List<Vector<Integer>> values;
 
 	// Constructor
-	public Technology(String inName, String text) throws IOException {
+	public Technology(String inName, Array abstracts) throws IOException, SQLException {
 		this.name = inName;
-		shingles = collectShinglesFrom(text);
+		shingles = new ArrayList<Set<Integer>>();
+		String[] texts = (String[])abstracts.getArray();
+		System.out.println("Texts: "+texts.length);
+		for(int i = 0; i < Math.min(100, texts.length); i++) {
+			shingles.add(collectShinglesFrom(texts[i]));	
+		}
 	}
 
 	private Set<Integer> collectShinglesFrom(String inText) throws IOException {
@@ -44,7 +52,7 @@ public class Technology {
 		return s;
 	}
 
-	public Set<Integer> getShingles() {
+	public List<Set<Integer>> getShingles() {
 		return shingles;
 	}
 
@@ -52,11 +60,11 @@ public class Technology {
 		return name;
 	}
 
-	public void setValues(Vector<Integer> minHash) {
+	public void setValues(List<Vector<Integer>> minHash) {
 		values = minHash;
 	}
 	
-	public List<Integer> getValues() {
+	public List<Vector<Integer>> getValues() {
 		return values;
 	}
 

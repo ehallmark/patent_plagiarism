@@ -61,13 +61,17 @@ public class Search {
 			boolean withTechnologies;
 			if(req.queryParams("technology")==null) withTechnologies = false;
 			else withTechnologies = true;
-		
+			StringJoiner sj = new StringJoiner("</li><li>","<div style='width:40%; float:left; margin:0px; padding:0px; height:auto; display:inline;'><ul><li>","</li></ul></div>");
 			try {
 				synchronized(Database.class) {
 					results = Database.similarPatents(patent,limit,true);
 				}
 				if(results == null) {
-					return "Patent not found!";
+					sj.add("Patent not found!");
+				}  else {
+					results.forEach(r->{
+						sj.add("Patent: "+r.getUrl()+" Similarity: "+r.getSimilarity()+'\n');
+					});	
 				}
 			} catch (SQLException sql) {
 				sql.printStackTrace();
@@ -75,10 +79,7 @@ public class Search {
 			}
 			
 			res.type("text/html");
-			StringJoiner sj = new StringJoiner("</li><li>","<div style='width:40%; float:left; margin:0px; padding:0px; height:auto; display:inline;'><ul><li>","</li></ul></div>");
-			results.forEach(r->{
-				sj.add("Patent: "+r.getUrl()+" Similarity: "+r.getSimilarity()+'\n');
-			});	
+
 			StringJoiner outerWrapper = new StringJoiner("","<div style='width:70%; left:0px; top:0px; height: auto;'>","</div>");
 			outerWrapper.add(sj.toString());
 			// Technologies
@@ -90,15 +91,20 @@ public class Search {
 					synchronized(Database.class) {
 						technologies = Database.similarTechnologies(patent);
 					}
+					if(technologies!=null) {
+						technologies.forEach(t->{
+							sj2.add("Technology: "+t.getName()+" Similarity: "+t.getSimilarity()+'\n');
+						});
+					} else {
+						sj2.add("No technologies found!");
+					}
+
+					outerWrapper.add(sj2.toString());
 				} catch(SQLException sql) {
 					sql.printStackTrace();
-					return("Unable to find technologies");
+					outerWrapper.add("Unable to find technologies");
 				}
-				
-				technologies.forEach(t->{
-					sj2.add("Technology: "+t.getName()+" Similarity: "+t.getSimilarity()+'\n');
-				});
-				outerWrapper.add(sj2.toString());
+
 				
 			}
 			String title = "<h3>Showing patents similar to: "+(new PatentResult(patent,0)).getUrl()+"</h3><hr/>";

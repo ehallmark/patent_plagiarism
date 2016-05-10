@@ -18,7 +18,7 @@ public class Database {
 	private static String compdbUrl = "jdbc:postgresql://data.gttgrp.com/compdb_development?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
 	private final static String selectReelFrames = "select t.name, array_agg(r.reel::text||':'||r.frame::text) as reel_frames from technologies as t inner join deals_technologies as dt on (t.id = dt.technology_id) inner join deals on (dt.deal_id=deals.id) inner join recordings as r on (deals.id=r.deal_id) group by t.name order by t.name";
-	private final static String selectTechnologiesByReelFrame = "select substring(array_to_string(array_agg(substring(regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') || regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') from 0 for 1000000/?)),'') from 0 for 1000000)  as abstract from patent_assignment_property_document as p inner join patent_grant as p2 on (p.doc_number=p2.pub_doc_number) where assignment_reel_frame = any(?) group by random() limit 1";
+	private final static String selectTechnologiesByReelFrame = "select array_agg(substring(regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') from 0 for (1000000/?)))  as abstract from patent_assignment_property_document as p inner join patent_grant as p2 on (p.doc_number=p2.pub_doc_number) where assignment_reel_frame = any(?) limit 1";
 	private static Connection seedConn;
 	private static Connection mainConn;
 	private static Connection compdbConn;
@@ -221,21 +221,25 @@ public class Database {
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 		insertStatement.add("INSERT INTO technology_min_hash");
 		columns.add("name");
-		for (int i = 1; i <= (Main.NUM_HASH_FUNCTIONS*10); i++) {
+		for (int i = 1; i <= (Main.NUM_HASH_FUNCTIONS); i++) {
 			columns.add("m" + i);
 		}
 		insertStatement.add(columns.toString());
 		insertStatement.add("VALUES");
 		// Add patent values as array
-		StringJoiner vals = new StringJoiner(",", "(", ")");
-		vals.add("'" + t.getName() + "'");
-		t.getValues().forEach(val -> {
-			vals.add(val.toString());
+		StringJoiner vals = new StringJoiner(",");
+		t.getValues().forEach(values -> {
+			StringJoiner merge = new StringJoiner(",","(",")");
+			merge.add("'" + t.getName() + "'");
+			values.forEach(val->{
+				merge.add(val.toString());
+			});
+			vals.add(merge.toString());
 		});
 		insertStatement.add(vals.toString());
 		System.gc();
 		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
-		//System.out.println(ps);
+		System.out.println(t.getValues().size());
 		ps.executeUpdate();
 		ps.close();
 	}
@@ -258,7 +262,7 @@ public class Database {
 					ResultSet rs = ps.executeQuery();
 					String name = res.getString(1);
 					if(rs.next()) {
-						Technology t = new Technology(name,rs.getString(1));
+						Technology t = new Technology(name,rs.getArray(1));
 						t.setValues(CompDB.createMinHash(t));
 						insertTechnology(t);
 						t=null;
@@ -295,14 +299,12 @@ public class Database {
 		StringJoiner join = new StringJoiner("+", "(", ")");
 		ResultSet results = ps.executeQuery();
 		if (results.next()) {
-			int delim = 10;
-			int size = 10;
-			for (int i = 0; i < Main.NUM_HASH_FUNCTIONS; i++) {
-				StringJoiner merge = new StringJoiner(" OR ","CASE WHEN (",") THEN 1 ELSE 0 END");
-				for(int j = 1; j <= size; j++) {
-					merge.add("(m" + (i*delim+j) + "=" + results.getInt(i+1) + ")");
-				}
-				join.add(merge.toString());
+			//int delim = 10;
+			//int size = 10;
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
+				//StringJoiner merge = new StringJoiner(" OR ","CASE WHEN (",") THEN 1 ELSE 0 END");
+				join.add("AVG(CASE WHEN(m" + (i) + "=" + results.getInt(i) + ") THEN 1 ELSE 0 END)");
+				//join.add(merge.toString());
 
 			}
 		} else {
@@ -311,7 +313,7 @@ public class Database {
 
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM technology_min_hash");
-		similarSelect.add("ORDER BY similarity DESC LIMIT 10");
+		similarSelect.add("GROUP BY name ORDER BY similarity DESC LIMIT 10");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
 				.toString());
