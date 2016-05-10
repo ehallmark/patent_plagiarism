@@ -56,7 +56,7 @@ public class Search {
 			Integer limit;
 			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(patent==null) return "Please provide a patent number!";
-			else {patent=patent.toUpperCase().trim().replaceAll("[^0-9A-Z]", "");}
+			else {patent=patent.toUpperCase().trim().replaceAll("US","").replaceAll("[^0-9A-Z]", "");}
 			
 			boolean withTechnologies;
 			if(req.queryParams("technology")==null) withTechnologies = false;
