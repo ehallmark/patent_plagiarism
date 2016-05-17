@@ -10,29 +10,22 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
-import java.util.Vector;
 
 public class Database {
 	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
 	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
-	private static String compdbUrl = "jdbc:postgresql://data.gttgrp.com/compdb_development?user=postgres&password=&tcpKeepAlive=true";
-	private static final String lastIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
-	private final static String selectReelFrames = "select t.name, array_agg(r.reel::text||':'||r.frame::text) as reel_frames from technologies as t inner join deals_technologies as dt on (t.id = dt.technology_id) inner join deals on (dt.deal_id=deals.id) inner join recordings as r on (deals.id=r.deal_id) group by t.name order by t.name";
-	private final static String selectTechnologiesByReelFrame = "select array_agg(substring(regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') from 0 for (1000000/?)))  as abstract from patent_assignment_property_document as p inner join patent_grant as p2 on (p.doc_number=p2.pub_doc_number) where assignment_reel_frame = any(?) limit 1";
+	private static final String lastPatentIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
+	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
+
 	private static Connection seedConn;
 	private static Connection mainConn;
-	private static Connection compdbConn;
-	// private static final String orderByDate = " ORDER BY pub_date::int";
-	private static final String getPatentCount = "select count(distinct(doc_number)) from patent_assignment_property_document where assignment_reel_frame = any(?)";
-	private static final String selectPatents = " SELECT pub_doc_number, regexp_replace(lower(coalesce(invention_title,'')), '[^a-z]', '', 'g') as invention_title, regexp_replace(lower(coalesce(abstract,'')), '[^a-z]', '', 'g') as abstract, regexp_replace(lower(substring(coalesce(description,'') from 0 for least(char_length(coalesce(description,'')),10000))), '[^a-z]', '', 'g') as description, pub_date::int FROM patent_grant WHERE pub_date::int >= ? ";
+
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
-	private static final String selectLastIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
+	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
+	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
+	private static final String selectPatents = "SELECT pub_doc_number, regexp_replace(abstract, '[^a-zA-Z .,:;]', '', 'g') as abstract, regexp_replace(description, '[^a-zA-Z .,:;]', '', 'g') as description FROM patent_grant where abstract is not null and pub_date::int > ?";
+	private static final String selectClaims = "SELECT pub_doc_number, array_to_string(array_agg(regexp_replace(claim_text, '[^a-zA-Z .,:;]', '', 'g')),' ') as claims FROM patent_grant_claim WHERE claim_text is not null and uid > ? group by pub_doc_number order by min(uid) desc limit 500000";
 
-	
-	public static void setupCompDBConn() throws SQLException {
-		compdbConn = DriverManager.getConnection(compdbUrl);
-
-	}
 	
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
@@ -42,37 +35,56 @@ public class Database {
 		seedConn = DriverManager.getConnection(inUrl);
 		seedConn.setAutoCommit(false);
 	}
+	
 
-	public static void insertPatent(List<Patent> patents) throws SQLException {
-		StringJoiner insertStatement = new StringJoiner(" ");
+	public static void insertPatent(Patent p) throws SQLException {
+		StringJoiner insertAbstract = new StringJoiner(" ");
+		StringJoiner insertDescription = new StringJoiner(" ");
 		StringJoiner columns = new StringJoiner(",", "(", ")");
-		StringJoiner valJoiner = new StringJoiner(",", " ", " ");
-		insertStatement.add("INSERT INTO patent_min_hash");
+		
 		columns.add("pub_doc_number");
 		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
 			columns.add("m" + i);
 		}
-		insertStatement.add(columns.toString());
-		insertStatement.add("VALUES");
+		// update abstract and description table separately
+
+		insertAbstract.add("INSERT INTO patent_min_hash");
+		insertAbstract.add(columns.toString());
+		insertAbstract.add("VALUES");
+		
+		insertDescription.add("INSERT INTO patent_description_min_hash");
+		insertDescription.add(columns.toString());
+		insertDescription.add("VALUES");
+		
 		// Add patent values as array
-		patents.forEach(p -> {
-			StringJoiner vals = new StringJoiner(",", "(", ")");
-			vals.add("'" + p.getName() + "'");
-			p.getValues().forEach(val -> {
-				vals.add(val.toString());
+		if(p.getAbstractValues()!=null&&!p.getAbstractValues().isEmpty()) {
+			StringJoiner abstractVals = new StringJoiner(",", "(", ")");
+			abstractVals.add("'" + p.getName() + "'");
+			p.getAbstractValues().forEach(val -> {
+				abstractVals.add(val.toString());
 			});
-			valJoiner.add(vals.toString());
-		});
-		insertStatement.add(valJoiner.toString());
-
-		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
-
-		ps.executeUpdate();
-		ps.close();
+			insertAbstract.add(abstractVals.toString());
+			PreparedStatement ps = mainConn.prepareStatement(insertAbstract.toString());
+			ps.executeUpdate();
+			ps.close();
+		}
+			
+		if(p.getDescriptionValues()!=null&&!p.getDescriptionValues().isEmpty()) {
+			StringJoiner descriptionVals = new StringJoiner(",", "(", ")");
+			descriptionVals.add("'" + p.getName() + "'");
+			p.getDescriptionValues().forEach(val -> {
+				descriptionVals.add(val.toString());
+			});
+			insertDescription.add(descriptionVals.toString());
+			PreparedStatement ps = mainConn.prepareStatement(insertDescription.toString());
+			ps.executeUpdate();
+			ps.close();
+		}
+		
 	}
 
 	public static ArrayList<PatentResult> similarPatents(String patent,
-			int limit, boolean fast) throws SQLException {
+			int limit) throws SQLException {
 		// Get the patent's hash values
 		final String selectPatent = "SELECT * FROM patent_min_hash WHERE pub_doc_number = ?";
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
@@ -94,8 +106,9 @@ public class Database {
 					String inner = "(m" + n + "=" + results.getInt(n) + ")";
 					join.add(inner + "::int");
 					and.add(inner);
-				}
-				where.add(and.toString());
+				} 
+				// First 10 have indices on the columns
+				if(i<10)where.add(and.toString());
 			}
 		} else {
 			return null;
@@ -103,7 +116,7 @@ public class Database {
 
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=?");
-		if(fast)similarSelect.add(where.toString());
+		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
@@ -122,7 +135,7 @@ public class Database {
 	}
 
 	public static ArrayList<PatentResult> similarPatents(
-			Vector<Integer> minHashValues, int limit, boolean fast) throws SQLException {
+			List<Integer> minHashValues, int limit) throws SQLException {
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,");
@@ -139,12 +152,12 @@ public class Database {
 				join.add(inner + "::int");
 				and.add(inner);
 			}
-		    where.add(and.toString());
+		    if(i<10)where.add(and.toString());
 		}
 
 		similarSelect.add(join.toString());
 		similarSelect.add("as similarity FROM patent_min_hash");
-		if(fast)similarSelect.add(where.toString());
+		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
@@ -163,9 +176,23 @@ public class Database {
 
 	// We need the seed connection
 	public static ResultSet selectPatents() throws SQLException, IOException {
-		PreparedStatement ps = mainConn.prepareStatement(selectLastIngestDate);
+		PreparedStatement ps = mainConn.prepareStatement(selectLastPatentIngestDate);
 		ResultSet res = ps.executeQuery();
 		PreparedStatement ps2 = seedConn.prepareStatement(selectPatents);
+		if(res.next()) {
+			ps2.setInt(1, res.getInt(1));
+		} else {
+			ps2.setInt(1, 0);
+		}
+		ps2.setFetchSize(Main.FETCH_SIZE);
+		ResultSet results = ps2.executeQuery();
+		return results;
+	}
+	
+	public static ResultSet selectClaims() throws SQLException, IOException {
+		PreparedStatement ps = mainConn.prepareStatement(selectLastClaimIngestDate);
+		ResultSet res = ps.executeQuery();
+		PreparedStatement ps2 = seedConn.prepareStatement(selectClaims);
 		if(res.next()) {
 			ps2.setInt(1, res.getInt(1));
 		} else {
@@ -184,14 +211,33 @@ public class Database {
 		mainConn.commit();
 	}
 	
-	public static void updateLastDate() throws SQLException {
+	public static void updateLastDate(int seedType) throws SQLException {
 		// update last ingest
-		LocalDateTime date = LocalDateTime.now();
-		int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
-		PreparedStatement ps = mainConn.prepareStatement(lastIngest);
-		ps.setInt(1, lastDate);
-		ps.executeUpdate();
-		ps.close();
+		PreparedStatement ps;
+		if(seedType==Main.SEED_PATENTS) {
+			// update last date
+			LocalDateTime date = LocalDateTime.now();
+			int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
+			ps = mainConn.prepareStatement(lastPatentIngest);
+			ps.setInt(1, lastDate);
+			ps.executeUpdate();
+			ps.close();
+		} else if(seedType==Main.SEED_CLAIMS) {
+			// update uid
+			// get the last UID and then add it to the last ingest table
+			int lastUid = getLastUidFromClaimTable();
+			ps = mainConn.prepareStatement(lastClaimIngest);
+			ps.setInt(1, lastUid);
+			ps.executeUpdate();
+			ps.close();
+			
+		}
+	}
+	
+	public static int getLastUidFromClaimTable() throws SQLException {
+		PreparedStatement ps = seedConn.prepareStatement("SELECT GREATEST(uid) as lastUid FROM patent_grant_claim");
+		ResultSet results = ps.executeQuery();
+		return results.getInt(1);
 	}
 
 	public static void close() throws SQLException {
@@ -216,115 +262,6 @@ public class Database {
 		return values;
 	}
 
-	public static void insertTechnology(Technology t) throws SQLException {
-		StringJoiner insertStatement = new StringJoiner(" ");
-		StringJoiner columns = new StringJoiner(",", "(", ")");
-		insertStatement.add("INSERT INTO technology_min_hash");
-		columns.add("name");
-		for (int i = 1; i <= (Main.NUM_HASH_FUNCTIONS); i++) {
-			columns.add("m" + i);
-		}
-		insertStatement.add(columns.toString());
-		insertStatement.add("VALUES");
-		// Add patent values as array
-		StringJoiner vals = new StringJoiner(",");
-		t.getValues().forEach(values -> {
-			StringJoiner merge = new StringJoiner(",","(",")");
-			merge.add("'" + t.getName() + "'");
-			values.forEach(val->{
-				merge.add(val.toString());
-			});
-			vals.add(merge.toString());
-		});
-		insertStatement.add(vals.toString());
-		System.gc();
-		PreparedStatement ps = mainConn.prepareStatement(insertStatement.toString());
-		System.out.println(t.getValues().size());
-		ps.executeUpdate();
-		ps.close();
-	}
-
-	public static void ingestTechnologies() throws SQLException {
-		// First we get a list of reel frames for each technology from CompDB
-		PreparedStatement pre = compdbConn.prepareStatement(selectReelFrames);
-		ResultSet res = pre.executeQuery();
-		while (res.next()) {
-			try{
-				PreparedStatement getCount = seedConn.prepareStatement(getPatentCount);
-				getCount.setArray(1, res.getArray(2));
-				ResultSet countResult = getCount.executeQuery();
-				if(countResult.next()) {
-					PreparedStatement ps = seedConn.prepareStatement(selectTechnologiesByReelFrame);
-					ps.setInt(1, countResult.getInt(1));
-					countResult.close();
-					getCount.close();
-					ps.setArray(2, res.getArray(2));
-					ResultSet rs = ps.executeQuery();
-					String name = res.getString(1);
-					if(rs.next()) {
-						Technology t = new Technology(name,rs.getArray(1));
-						t.setValues(CompDB.createMinHash(t));
-						insertTechnology(t);
-						t=null;
-					}
-					rs.close();
-					ps.close();
-					System.out.println(name);
-				
-				} else {
-					System.out.println("Did not find a count...");
-				}
-
-				System.gc();
-			}catch(IOException e) {
-				e.printStackTrace();
-			} catch(SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		pre.close();
-		System.gc();
-	}
-
-	public static List<TechnologyResult> similarTechnologies(String patent) throws SQLException {
-		List<TechnologyResult> technologies = new ArrayList<TechnologyResult>();
-		// Get the patent's hash values
-		final String selectPatent = "SELECT * FROM patent_min_hash WHERE pub_doc_number = ?";
-		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
-		ps.setString(1, patent);
-
-		// Construct query based on number of bands and length of bands
-		StringJoiner similarSelect = new StringJoiner(" ");
-		similarSelect.add("SELECT name,");
-		StringJoiner join = new StringJoiner("+", "(", ")");
-		ResultSet results = ps.executeQuery();
-		if (results.next()) {
-			//int delim = 10;
-			//int size = 10;
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
-				//StringJoiner merge = new StringJoiner(" OR ","CASE WHEN (",") THEN 1 ELSE 0 END");
-				join.add("AVG(CASE WHEN(m" + (i) + "=" + results.getInt(i) + ") THEN 1 ELSE 0 END)");
-				//join.add(merge.toString());
-
-			}
-		} else {
-			return null;
-		}
-
-		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM technology_min_hash");
-		similarSelect.add("GROUP BY name ORDER BY similarity DESC LIMIT 10");
-
-		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
-				.toString());
-		System.out.println(ps2);
-		results = ps2.executeQuery();
-		while (results.next()) {
-			technologies.add(new TechnologyResult(results.getString(1), results
-					.getInt(2)));
-		}		
-		return technologies;
-	}
 
 
 

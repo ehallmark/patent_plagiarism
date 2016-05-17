@@ -2,15 +2,20 @@ package seed;
 
 public class PatentResult {
 	private String name;
-	private double similarity;
+	private Integer similarity;
 
-	public PatentResult(String name, double similarity) {
+	public PatentResult(String name, int similarity) {
 		this.name = name;
 		this.similarity = similarity;
 	}
 
 	public String getSimilarity() {
-		return "%" + (int) (similarity / (Main.NUM_HASH_FUNCTIONS / 100));
+		if(similarity!=null) return "%" + (int) (similarity / (Main.NUM_HASH_FUNCTIONS / 100));
+		else return "N/A";
+	}
+	
+	public String getExternalUrl() {
+		return "<a style='margin-left:5px; margin-left:5px;' target='_blank' href='http://www.google.com/patents/US" + name + "' >link</a>";
 	}
 
 	public String getName() {
@@ -18,7 +23,6 @@ public class PatentResult {
 	}
 
 	public String getUrl() {
-		return "<a href='http://www.google.com/patents/US" + name + "' >"
-				+ name + "</a>";
+		return "<b><a style='margin-left:5px; margin-left:5px;' href='find_by_patent?patent=" + name + "' >"+name+"</a></b>";
 	}
 }

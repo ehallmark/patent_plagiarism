@@ -1,67 +1,64 @@
 package seed;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.HashSet;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
+import java.util.Vector;
 
 public class Patent {
 	private String name;
-	private Set<Integer> shingles;
-	private List<Integer> values;
+	private List<Integer> abstractValues;
+	private List<Integer> descriptionValues;
+	public static final int SEED = 342689376;
+	private static final Random rand = new Random(SEED);
+	private static List<HashFunction> hashFunctions = new Vector<HashFunction>();
+	
+	public static void setup() {
+		for (int i = 0; i < Main.NUM_HASH_FUNCTIONS; i++) {
+			hashFunctions.add(new HashFunction(rand.nextInt()));
+		};		
+	}
+	
 
 	// Constructor
-	public Patent(String inName, String title, String inAbstract,
-			String inDescription) throws Exception {
+	public Patent(String inName, String inAbstract, String inDescription) throws SQLException {
 		name = inName;
-		shingles = collectShinglesFrom(inAbstract);
-		shingles.addAll(collectShinglesFrom(title));
-		shingles.addAll(collectShinglesFrom(inDescription));
-		if (shingles.isEmpty())
-			throw new Exception();
+		
+		abstractValues = createMinHash(NLP.getShingles(inAbstract));
+		descriptionValues = createMinHash(NLP.getShingles(inDescription));
+		if (abstractValues.isEmpty() && descriptionValues.isEmpty())
+			throw new NullPointerException();
 	}
 
-	public List<Integer> getValues() {
-		return values;
+	public List<Integer> getAbstractValues() {
+		return abstractValues;
 	}
-
-	public void setValues(List<Integer> values) {
-		this.values = values;
+	
+	public List<Integer> getDescriptionValues() {
+		return descriptionValues;
 	}
-
-	private Set<Integer> collectShinglesFrom(String inText) throws IOException {
-		Set<Integer> s = new HashSet<Integer>();
-		StringReader ss = new StringReader(inText);
-		int c;
-		while ((c = ss.read()) != -1) {
-			ss.mark(Main.LEN_SHINGLES);
-			char[] hashVal = new char[Main.LEN_SHINGLES];
-			hashVal[0] = (char) c;
-			for (int i = 1; i < Main.LEN_SHINGLES; i++) {
-				if ((c = ss.read()) != -1) {
-					hashVal[i] = (char) c;
-				} else {
-					break;
-				}
-			}
-			if (c == -1)
-				break;
-			s.add(new String(hashVal).hashCode()); // Convert to hash to save
-													// space
-			ss.reset();
-		}
-
-		ss.close();
-		return s;
-	}
-
-	public Set<Integer> getShingles() {
-		return shingles;
-	}
+	
 
 	public String getName() {
 		return name;
+	}
+	
+	public static Vector<Integer> createMinHash(Set<Integer> shingles) {
+		Vector<Integer> MinHashVector = new Vector<Integer>();
+		hashFunctions.forEach(hash -> {
+			int min = Integer.MAX_VALUE;
+			for (int shingle : shingles) {
+				int h = hash.getHashCode(shingle);
+				if (h < min)
+					min = h;
+			}
+			;
+			// Get the minimum value
+				MinHashVector.add(min);
+			});
+		System.gc();
+		return MinHashVector;
 	}
 
 }

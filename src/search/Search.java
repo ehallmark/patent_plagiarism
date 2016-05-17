@@ -5,19 +5,18 @@ import static spark.Spark.post;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.StringJoiner;
-import java.util.Vector;
 
 import seed.Database;
-import seed.Main;
 import seed.Patent;
 import seed.PatentResult;
-import seed.TechnologyResult;
+import spark.Request;
 
 public class Search {	
+	private static final int DEFAULT_LIMIT = 10;
+	
 	private static StringJoiner freshTemplate() {
-		return new StringJoiner("","<div style='width:100%; padding: 2% 10%;'><h2>Similar Patent Finder</h2>","</div>");
+		return new StringJoiner("","<div style='width:100%; padding: 2% 10%;'><h2>Similar Patent Finder</h2><hr />","</div>");
 	}
 	
 	public static void server() {
@@ -32,16 +31,15 @@ public class Search {
 			res.type("text/html");
 			StringJoiner template = freshTemplate();
 			String html =  "<h3>By Patent</h3>"
-				+ "<form action='/find_by_patent' method='post'>"
+				+ "<form action='/find_by_patent' method='get'>"
 					+ "<label style='margin-right:15px;'>Patent Number:</label><input id='patent' name='patent' /><br/>"
-					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' /><br/>"
-					+ "<label style='margin-right:15px;'>Technology Estimate?</label><input name='technology' id='technology' type='checkbox' value='yes' /><br/><br/>"
+					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
 					+ "<button>Search</button>"
 
 				+ "</form><br/>"
 				+ "<h3>By Raw Text</h3>"
 				+ "<form action='/find_by_text' method='post'>"
-					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='100' /><br/>"
+					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
 					+ "<textarea rows='10' cols='50' id='text' name='text' ></textarea><br/><br />"
 					+ "<button>Search</button>"
 				+ "</form>";
@@ -49,115 +47,86 @@ public class Search {
 			return template.toString();
 		});
 		
-		post("/find_by_patent", (req, res) -> {
+		get("/find_by_patent", (req, res) -> {
+			res.type("text/html");
 			StringJoiner template = freshTemplate();
-			ArrayList<PatentResult> results = null;
 			String patent = req.queryParams("patent");
-			Integer limit;
-			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
+			Integer limit = getLimit(req);
+			// set cookie
+			res.cookie("limit", limit.toString());
+			
 			if(patent==null) return "Please provide a patent number!";
 			else {patent=patent.toUpperCase().trim().replaceAll("US","").replaceAll("[^0-9A-Z]", "");}
-			
-			boolean withTechnologies;
-			if(req.queryParams("technology")==null) withTechnologies = false;
-			else withTechnologies = true;
-			StringJoiner sj = new StringJoiner("</li><li>","<div style='width:40%; float:left; margin:0px; padding:0px; height:auto; display:inline;'><ul><li>","</li></ul></div>");
-			try {
-				synchronized(Database.class) {
-					results = Database.similarPatents(patent,limit,true);
-				}
-				if(results == null) {
-					sj.add("Patent not found!");
-				}  else {
-					results.forEach(r->{
-						sj.add("Patent: "+r.getUrl()+" Similarity: "+r.getSimilarity()+'\n');
-					});	
-				}
-			} catch (SQLException sql) {
-				sql.printStackTrace();
-				return("Database error!");
-			}
-			
-			res.type("text/html");
-
-			StringJoiner outerWrapper = new StringJoiner("","<div style='width:70%; left:0px; top:0px; height: auto;'>","</div>");
-			outerWrapper.add(sj.toString());
-			// Technologies
-			if(withTechnologies) {
-				StringJoiner sj2 = new StringJoiner("</li><li>","<div style='width:40%; margin:0px; padding:0px; float:right; height:auto; display:inline;'><ul><li>","</li></ul></div>");
-
-				List<TechnologyResult> technologies = new ArrayList<TechnologyResult>();
-				try{
-					synchronized(Database.class) {
-						technologies = Database.similarTechnologies(patent);
-					}
-					if(technologies!=null) {
-						technologies.forEach(t->{
-							sj2.add("Technology: "+t.getName()+" Similarity: "+t.getSimilarity()+'\n');
-						});
-					} else {
-						sj2.add("No technologies found!");
-					}
-
-					outerWrapper.add(sj2.toString());
-				} catch(SQLException sql) {
-					sql.printStackTrace();
-					outerWrapper.add("Unable to find technologies");
-				}
-
-				
-			}
-			String title = "<h3>Showing patents similar to: "+(new PatentResult(patent,0)).getUrl()+"</h3><hr/>";
-			template.add(title+outerWrapper.toString());
+			PatentResult pr = new PatentResult(patent,0);
+			String title = "<h3>Showing "+limit+" most similar patents to "+ pr.getUrl()+pr.getExternalUrl()+"</h3>";
+			String subtitle = "<h4>By Similarity Of <button>Abstract</button><button>Description</button><button>Claims</button></h4>";
+			template.add(title+subtitle+resultsToHTML(Database.similarPatents(patent, limit)));
 			return template.toString();
 		});
 		
 		post("/find_by_text", (req, res) -> {
 			StringJoiner template = freshTemplate();
-			ArrayList<PatentResult> results = null;
 			String text = req.queryParams("text");
-			Integer limit;
-			try{ limit = Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ limit = 100; }
 			if(text==null) return "Please provide some text!";
+	
+			Integer limit = getLimit(req);
+			// set cookie
+			res.cookie("limit", limit.toString());
 			
 			// Create min hash for this text
-			Vector<Integer> MinHashVector;
+			Patent p;
 			try {
-				Patent p = new Patent("","",text.toLowerCase(),"");
-				MinHashVector = Main.createMinHash(p);
+				p = new Patent("",text,text);
 			} catch (Exception e) {
 				e.printStackTrace();
 				return "Unable to perform search. Try providing more text!";
 			}
-			
-			try {
-				synchronized(Database.class) {
-					results = Database.similarPatents(MinHashVector,limit,true);
-				}
-			} catch (SQLException sql) {
-				sql.printStackTrace();
-				return("Database error!");
-			}
-			res.type("text/html");
-			StringJoiner sj = new StringJoiner("</li><li>","<ul><li>","</li></ul>");
-			results.forEach(r->{
-				sj.add("Patent: "+r.getUrl()+" Similarity: "+r.getSimilarity()+'\n');
-			});	
-			String title = "<h3>Showing patents similar to Custom Text</h3><hr/>";
-			template.add(title+sj.toString());
+	
+			String title = "<h3>Showing "+limit+" most similar patents</h3>";
+			String subtitle = "<h4>By Similarity Of <button>Abstract</button><button>Description</button><button>Claims</button></h4>";
+			template.add(title+subtitle+resultsToHTML(Database.similarPatents(p.getAbstractValues(),limit)));
 			return template.toString();
 		});
 	}
 	
+	
+	private static Integer getLimit(Request req) {
+		try{ return Integer.parseInt(req.queryParams("limit")); } catch(Exception e){ 
+			// check cookies for limit
+			try { return Integer.parseInt(req.cookie("limit")); } catch(Exception e2) {
+				return DEFAULT_LIMIT; 
+			}
+		}
+	}
+
+	public static String resultsToHTML(ArrayList<PatentResult> results) {
+		StringJoiner outerWrapper = new StringJoiner("","<div style='width:70%; left:0px; top:0px; height: auto;'>","</div>");
+		StringJoiner sj = new StringJoiner("","<table><thead><tr><th>Patent Number</th><th>Similarity</th><th></th></tr></thead><tbody>","</tbody></table>");
+
+		if(results == null) {
+			sj.add("Patent not found!");
+		}  else {
+			results.forEach(r->{
+				StringJoiner row = new StringJoiner("</td><td>","<tr><td>","</td></tr>");
+				row.add(r.getUrl());
+				row.add(r.getSimilarity());
+				row.add(r.getExternalUrl());
+				sj.add(row.toString());
+			});	
+		}
+		outerWrapper.add(sj.toString());		
+		return outerWrapper.toString();
+	}
 	
 	public static void main(String[] args) {
 		try {
 			// Get patents
 			synchronized(Database.class) {
 				Database.setupMainConn();
-				Main.setup();
 			}
 			// Start server
+			Patent.setup();
+
 			server();
 
 		} catch (SQLException e) {
