@@ -17,7 +17,10 @@ $$ ;
 
 
 ALTER TABLE patent_claim_min_hash ADD COLUMN pub_doc_number varchar(100) PRIMARY KEY;
+ALTER TABLE patent_claim_min_hash ADD COLUMN claim_number integer;
 ALTER TABLE patent_claim_min_hash ADD COLUMN uid serial;
+
+CREATE INDEX claim_number_index on patent_claim_min_hash(claim_number);
 CREATE INDEX cm1_index ON patent_claim_min_hash (m1);
 CREATE INDEX cm2_index ON patent_claim_min_hash (m2);
 CREATE INDEX cm3_index ON patent_claim_min_hash (m3);
@@ -38,8 +41,5 @@ CREATE INDEX cm17_index ON patent_claim_min_hash (m17);
 CREATE INDEX cm18_index ON patent_claim_min_hash (m18);
 CREATE INDEX cm19_index ON patent_claim_min_hash (m19);
 CREATE INDEX cm20_index ON patent_claim_min_hash (m20);
-
-
-INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (20130101,'patent_grant_claim');
 
 

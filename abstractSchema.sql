@@ -39,4 +39,3 @@ CREATE INDEX m18_index ON patent_min_hash (m18);
 CREATE INDEX m19_index ON patent_min_hash (m19);
 CREATE INDEX m20_index ON patent_min_hash (m20);
 
-INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (20130101,'patent_grant');

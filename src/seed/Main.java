@@ -3,8 +3,6 @@ package seed;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
@@ -13,7 +11,7 @@ public class Main {
 	public static final int LEN_BANDS = 2;
 	public static final int NUM_HASH_FUNCTIONS = NUM_BANDS * LEN_BANDS;
 	public static final double SIGNIFICANCE_RATIO = 0.15;
-	private ArrayBlockingQueue<String[]> queue;
+	private ArrayBlockingQueue<QueueSender> queue;
 	private volatile boolean kill = false;
 	public static int FETCH_SIZE = 20;
 	public static final int SEED_PATENTS = 1;
@@ -32,37 +30,39 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
-		queue = new ArrayBlockingQueue<String[]>(5000);
+		queue = new ArrayBlockingQueue<QueueSender>(5000);
 		Database.setupSeedConn();
 		Database.setupMainConn();
 		Thread thr = new Thread() {
 			@Override
 			public void run() {
-				String[] res = null;
+				QueueSender res = null;
 				try {
 					while (!kill) {
 						if ((res = queue.poll()) == null) {
 							Thread.sleep(50);
 							continue;
 						}
-						Patent p;
-						try {
-							p = new Patent(res[0], res[1], res[2]);
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							continue;
+						if(seedType==Main.SEED_PATENTS)  {
+							try {
+								Patent p = new Patent(res.arg1, res.arg2, res.arg3);
+								Database.insertPatent(p);
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+								continue;
+							}
+						} else if(seedType==Main.SEED_CLAIMS) {
+							try {
+								Claim c = new Claim(res.arg1, res.arg2, Integer.parseInt(res.arg3));
+								Database.insertClaim(c);
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+								continue;
+							}
 						}
 
-						try {
-							
-							if(seedType==Main.SEED_CLAIMS) Database.insertClaim(p);
-							else if(seedType==SEED_PATENTS) Database.insertPatent(p);
-
-						} catch (SQLException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
 						System.gc();
 					}
 
@@ -80,9 +80,9 @@ public class Main {
 		else return;
 		try {
 			while (results.next()) {
-				try {
-					final String[] r = new String[] { results.getString(1),
-							results.getString(2), results.getString(3)};
+				try { 
+					final QueueSender r = new QueueSender(results.getString(1),
+							results.getString(2), results.getString(3));
 					while (!queue.offer(r)) {
 						// Queue is full
 						try {

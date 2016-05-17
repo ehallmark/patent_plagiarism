@@ -23,8 +23,8 @@ public class Database {
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
-	private static final String selectPatents = "SELECT pub_doc_number, regexp_replace(abstract, '[^a-zA-Z .,:;]', '', 'g') as abstract, regexp_replace(description, '[^a-zA-Z .,:;]', '', 'g') as description FROM patent_grant where abstract is not null and pub_date::int > ?";
-	private static final String selectClaims = "SELECT pub_doc_number, array_to_string(array_agg(regexp_replace(claim_text, '[^a-zA-Z .,:;]', '', 'g')),' ') as claims FROM patent_grant_claim WHERE claim_text is not null and uid > ? group by pub_doc_number order by min(uid) desc limit 500000";
+	private static final String selectPatents = "SELECT pub_doc_number, regexp_replace(coalesce(abstract,''), '[^a-zA-Z .,:;]', '', 'g') as abstract, regexp_replace(coalesce(description, ''), '[^a-zA-Z .,:;]', '', 'g') as description FROM patent_grant where pub_date::int > ?";
+	private static final String selectClaims = "SELECT pub_doc_number, regexp_replace(claim_text, '[^a-zA-Z .,:;]', '', 'g') as claims, number  FROM patent_grant_claim WHERE claim_text is not null and uid > ? order by uid";
 
 	
 	public static void setupMainConn() throws SQLException {
@@ -38,8 +38,6 @@ public class Database {
 	
 
 	public static void insertPatent(Patent p) throws SQLException {
-		StringJoiner insertAbstract = new StringJoiner(" ");
-		StringJoiner insertDescription = new StringJoiner(" ");
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 		
 		columns.add("pub_doc_number");
@@ -47,17 +45,15 @@ public class Database {
 			columns.add("m" + i);
 		}
 		// update abstract and description table separately
-
-		insertAbstract.add("INSERT INTO patent_min_hash");
-		insertAbstract.add(columns.toString());
-		insertAbstract.add("VALUES");
-		
-		insertDescription.add("INSERT INTO patent_description_min_hash");
-		insertDescription.add(columns.toString());
-		insertDescription.add("VALUES");
+	
 		
 		// Add patent values as array
 		if(p.getAbstractValues()!=null&&!p.getAbstractValues().isEmpty()) {
+			StringJoiner insertAbstract = new StringJoiner(" ");
+
+			insertAbstract.add("INSERT INTO patent_min_hash");
+			insertAbstract.add(columns.toString());
+			insertAbstract.add("VALUES");
 			StringJoiner abstractVals = new StringJoiner(",", "(", ")");
 			abstractVals.add("'" + p.getName() + "'");
 			p.getAbstractValues().forEach(val -> {
@@ -70,6 +66,10 @@ public class Database {
 		}
 			
 		if(p.getDescriptionValues()!=null&&!p.getDescriptionValues().isEmpty()) {
+			StringJoiner insertDescription = new StringJoiner(" ");
+			insertDescription.add("INSERT INTO patent_description_min_hash");
+			insertDescription.add(columns.toString());
+			insertDescription.add("VALUES");
 			StringJoiner descriptionVals = new StringJoiner(",", "(", ")");
 			descriptionVals.add("'" + p.getName() + "'");
 			p.getDescriptionValues().forEach(val -> {
@@ -82,6 +82,37 @@ public class Database {
 		}
 		
 	}
+	
+	public static void insertClaim(Claim claim) throws SQLException {
+		// Add patent values as array
+		if(claim.getValues()!=null&&!claim.getValues().isEmpty()&&claim.getClaimNum()!=null) {
+			StringJoiner insert = new StringJoiner(" ");
+			StringJoiner columns = new StringJoiner(",", "(", ")");
+			
+			columns.add("pub_doc_number");
+			columns.add("claim_number");
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
+				columns.add("m" + i);
+			}
+			// update abstract and description table separately
+
+			insert.add("INSERT INTO patent_claim_min_hash");
+			insert.add(columns.toString());
+			insert.add("VALUES");
+			StringJoiner vals = new StringJoiner(",", "(", ")");
+			vals.add("'" + claim.getPatentName() + "'");
+			vals.add(claim.getClaimNum().toString());
+			claim.getValues().forEach(val -> {
+				vals.add(val.toString());
+			});
+			insert.add(vals.toString());
+			PreparedStatement ps = mainConn.prepareStatement(insert.toString());
+			ps.executeUpdate();
+			ps.close();
+		}
+		
+	}
+
 
 	public static ArrayList<PatentResult> similarPatents(String patent,
 			int limit) throws SQLException {
@@ -235,7 +266,7 @@ public class Database {
 	}
 	
 	public static int getLastUidFromClaimTable() throws SQLException {
-		PreparedStatement ps = seedConn.prepareStatement("SELECT GREATEST(uid) as lastUid FROM patent_grant_claim");
+		PreparedStatement ps = seedConn.prepareStatement("SELECT uid FROM patent_grant_claim order by uid desc limit 1");
 		ResultSet results = ps.executeQuery();
 		return results.getInt(1);
 	}
