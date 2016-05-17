@@ -18,8 +18,7 @@ public class Main {
 	public static final int SEED_CLAIMS = 2;
 
 	Main(int seedType) throws IOException, SQLException {
-		// Get all the patents (chunked N at a time for "efficiency")
-		if(seedType<0||seedType>2) {
+		if(seedType<=0||seedType>2) {
 			System.out.println("Please specify a seed type!");
 			return;
 		}
@@ -31,8 +30,6 @@ public class Main {
 			return;
 		}
 		queue = new ArrayBlockingQueue<QueueSender>(5000);
-		Database.setupSeedConn();
-		Database.setupMainConn();
 		Thread thr = new Thread() {
 			@Override
 			public void run() {
@@ -47,6 +44,7 @@ public class Main {
 							try {
 								Patent p = new Patent(res.arg1, res.arg2, res.arg3);
 								Database.insertPatent(p);
+								System.out.println(p.getName());
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -54,8 +52,10 @@ public class Main {
 							}
 						} else if(seedType==Main.SEED_CLAIMS) {
 							try {
-								Claim c = new Claim(res.arg1, res.arg2, Integer.parseInt(res.arg3));
+								Claim c = new Claim(res.arg1, res.arg2, res.int1, res.int2);
 								Database.insertClaim(c);
+								System.out.println(c.getPatentName()+" claim "+c.getClaimNum());
+
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -75,14 +75,16 @@ public class Main {
 		};
 		thr.start();
 		ResultSet results;
-		if(seedType==Main.SEED_CLAIMS) results = Database.selectClaims();
+		if(seedType==SEED_CLAIMS) results = Database.selectClaims();
 		else if(seedType==SEED_PATENTS) results = Database.selectPatents();
 		else return;
 		try {
 			while (results.next()) {
 				try { 
-					final QueueSender r = new QueueSender(results.getString(1),
-							results.getString(2), results.getString(3));
+					QueueSender r;
+					if(seedType==SEED_CLAIMS) r = new QueueSender(results.getString(1),results.getString(2), results.getInt(3), results.getInt(4));
+					else if(seedType==SEED_PATENTS) r = new QueueSender(results.getString(1),results.getString(2), results.getString(3));
+					else break;
 					while (!queue.offer(r)) {
 						// Queue is full
 						try {
@@ -120,33 +122,15 @@ public class Main {
 		} finally {
 			try {
 				
-				Database.updateLastDate(seedType);
-				Database.close();
+				if(seedType==SEED_PATENTS)Database.updateLastPatentDate();
+				else if(seedType==SEED_CLAIMS && Claim.lastUid!=null)Database.updateLastClaimDate();
+				
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 
-	}
-
-
-	public static void main(String[] args) {
-		try {
-			if (args.length > 1)
-				try {
-					FETCH_SIZE = Integer.parseInt(args[1]);
-				} catch (Exception e) {
-				}
-			Patent.setup();
-			new Main(1);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 }

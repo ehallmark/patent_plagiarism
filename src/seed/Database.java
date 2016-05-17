@@ -20,11 +20,11 @@ public class Database {
 	private static Connection seedConn;
 	private static Connection mainConn;
 
-	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_min_hash ";
+	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_abstract_min_hash ";
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
 	private static final String selectPatents = "SELECT pub_doc_number, regexp_replace(coalesce(abstract,''), '[^a-zA-Z .,:;]', '', 'g') as abstract, regexp_replace(coalesce(description, ''), '[^a-zA-Z .,:;]', '', 'g') as description FROM patent_grant where pub_date::int > ?";
-	private static final String selectClaims = "SELECT pub_doc_number, regexp_replace(claim_text, '[^a-zA-Z .,:;]', '', 'g') as claims, number  FROM patent_grant_claim WHERE claim_text is not null and uid > ? order by uid";
+	private static final String selectClaims = "SELECT pub_doc_number, regexp_replace(coalesce(claim_text,''), '[^a-zA-Z .,:;]', '', 'g') as claims, number, uid  FROM patent_grant_claim WHERE uid > ? order by uid limit 1000";
 
 	
 	public static void setupMainConn() throws SQLException {
@@ -51,7 +51,7 @@ public class Database {
 		if(p.getAbstractValues()!=null&&!p.getAbstractValues().isEmpty()) {
 			StringJoiner insertAbstract = new StringJoiner(" ");
 
-			insertAbstract.add("INSERT INTO patent_min_hash");
+			insertAbstract.add("INSERT INTO patent_abstract_min_hash");
 			insertAbstract.add(columns.toString());
 			insertAbstract.add("VALUES");
 			StringJoiner abstractVals = new StringJoiner(",", "(", ")");
@@ -117,7 +117,7 @@ public class Database {
 	public static ArrayList<PatentResult> similarPatents(String patent,
 			int limit) throws SQLException {
 		// Get the patent's hash values
-		final String selectPatent = "SELECT * FROM patent_min_hash WHERE pub_doc_number = ?";
+		final String selectPatent = "SELECT * FROM patent_abstract_min_hash WHERE pub_doc_number = ?";
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
 		ps.setString(1, patent);
 
@@ -146,7 +146,7 @@ public class Database {
 		}
 
 		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM patent_min_hash WHERE pub_doc_number!=?");
+		similarSelect.add("as similarity FROM patent_abstract_min_hash WHERE pub_doc_number!=?");
 		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
@@ -187,7 +187,7 @@ public class Database {
 		}
 
 		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM patent_min_hash");
+		similarSelect.add("as similarity FROM patent_abstract_min_hash");
 		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
@@ -216,6 +216,8 @@ public class Database {
 			ps2.setInt(1, 0);
 		}
 		ps2.setFetchSize(Main.FETCH_SIZE);
+		System.out.println(ps2);
+
 		ResultSet results = ps2.executeQuery();
 		return results;
 	}
@@ -230,6 +232,8 @@ public class Database {
 			ps2.setInt(1, 0);
 		}
 		ps2.setFetchSize(Main.FETCH_SIZE);
+		System.out.println(ps2);
+
 		ResultSet results = ps2.executeQuery();
 		return results;
 	}
@@ -242,33 +246,38 @@ public class Database {
 		mainConn.commit();
 	}
 	
-	public static void updateLastDate(int seedType) throws SQLException {
-		// update last ingest
+	public static void updateLastPatentDate() throws SQLException {
 		PreparedStatement ps;
-		if(seedType==Main.SEED_PATENTS) {
-			// update last date
-			LocalDateTime date = LocalDateTime.now();
-			int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
-			ps = mainConn.prepareStatement(lastPatentIngest);
-			ps.setInt(1, lastDate);
-			ps.executeUpdate();
-			ps.close();
-		} else if(seedType==Main.SEED_CLAIMS) {
-			// update uid
-			// get the last UID and then add it to the last ingest table
-			int lastUid = getLastUidFromClaimTable();
-			ps = mainConn.prepareStatement(lastClaimIngest);
-			ps.setInt(1, lastUid);
-			ps.executeUpdate();
-			ps.close();
-			
-		}
+		// update last date
+		LocalDateTime date = LocalDateTime.now();
+		int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
+		ps = mainConn.prepareStatement(lastPatentIngest);
+		ps.setInt(1, lastDate);
+		ps.executeUpdate();
+		ps.close();
 	}
 	
-	public static int getLastUidFromClaimTable() throws SQLException {
-		PreparedStatement ps = seedConn.prepareStatement("SELECT uid FROM patent_grant_claim order by uid desc limit 1");
-		ResultSet results = ps.executeQuery();
-		return results.getInt(1);
+	public static void updateLastClaimDate() throws SQLException {
+		// update last ingest
+		if(Claim.lastUid!=null) {
+			PreparedStatement ps;
+			// get the last UID and then add it to the last ingest table
+			ps = mainConn.prepareStatement(lastClaimIngest);
+			ps.setInt(1, Claim.lastUid);
+			ps.executeUpdate();
+			ps.close();
+		}
+		
+	}
+	
+	public static Integer lastIngestableClaimUid() throws SQLException {
+		PreparedStatement ps = seedConn.prepareStatement("SELECT uid FROM patent_grant_claim ORDER BY uid DESC LIMIT 1");
+		ResultSet rs = ps.executeQuery();
+		if(rs.next()) {
+			return rs.getInt(1);
+		} else {
+			return null;
+		}
 	}
 
 	public static void close() throws SQLException {

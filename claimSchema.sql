@@ -16,11 +16,12 @@ END;
 $$ ;
 
 
-ALTER TABLE patent_claim_min_hash ADD COLUMN pub_doc_number varchar(100) PRIMARY KEY;
+ALTER TABLE patent_claim_min_hash ADD COLUMN pub_doc_number varchar(100);
 ALTER TABLE patent_claim_min_hash ADD COLUMN claim_number integer;
 ALTER TABLE patent_claim_min_hash ADD COLUMN uid serial;
 
 CREATE INDEX claim_number_index on patent_claim_min_hash(claim_number);
+CREATE INDEX pub_doc_number_claim_number_index on patent_claim_min_hash(pub_doc_number,claim_number);
 CREATE INDEX cm1_index ON patent_claim_min_hash (m1);
 CREATE INDEX cm2_index ON patent_claim_min_hash (m2);
 CREATE INDEX cm3_index ON patent_claim_min_hash (m3);
