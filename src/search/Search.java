@@ -135,7 +135,7 @@ public class Search {
 
 	public static String resultsToHTML(ArrayList<PatentResult> results, SimilarityType type, Request req) {
 		StringJoiner outerWrapper = new StringJoiner("","<div style='width:70%; left:0px; top:0px; height: auto;'>","</div>");
-		StringJoiner sj = new StringJoiner("","<table><thead><tr><th>Patent Number</th><th>Similarity</th><th></th></tr></thead><tbody>","</tbody></table>");
+		StringJoiner sj = new StringJoiner("","<table><tbody>","</tbody></table>");
 		String prefix = "<form action='"+req.uri()+"' id='form1' style='display:inline;' method='"+req.requestMethod()+"'>";
 		String suffix = "</form>";
 		StringJoiner mainContents = new StringJoiner("");
@@ -155,11 +155,11 @@ public class Search {
 		String descBtn = "<button>Description</button>";
 		String claimBtn = "<button>Claims</button>";
 		if(type.equals(SimilarityType.ABSTRACT)) {
-			absBtn = "<button disabled>Abstract</button>";
+			absBtn = "<button style='background-color: blue; color: white;' disabled>Abstract</button>";
 		} else if (type.equals(SimilarityType.DESCRIPTION)) {
-			descBtn = "<button disabled>Description</button>";
+			descBtn = "<button style='background-color: blue; color: white;' disabled>Description</button>";
 		} else if (type.equals(SimilarityType.CLAIM)) {
-			claimBtn = "<button disabled>Claims</button>";
+			claimBtn = "<button style='background-color: blue; color: white;' disabled>Claims</button>";
 		}			
 		
 		StringJoiner subtitle = new StringJoiner("","<h4>By Similarity Of ","</h4>");
