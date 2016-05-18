@@ -13,7 +13,7 @@ import java.util.StringJoiner;
 
 public class Database {
 	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
-	private static String outUrl = "jdbc:postgresql://192.168.1.63/patentdb?user=postgres&password=&tcpKeepAlive=true";
+	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastPatentIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
 	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
 
