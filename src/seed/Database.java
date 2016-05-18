@@ -36,6 +36,9 @@ public class Database {
 		seedConn.setAutoCommit(false);
 	}
 	
+	public enum SimilarityType {
+		ABSTRACT, DESCRIPTION, CLAIM
+	};
 
 	public static void insertPatent(Patent p) throws SQLException {
 		StringJoiner columns = new StringJoiner(",", "(", ")");
@@ -114,7 +117,7 @@ public class Database {
 	}
 
 
-	public static ArrayList<PatentResult> similarPatents(String patent,
+	public static ArrayList<PatentResult> similarPatents(String patent,SimilarityType type,
 			int limit) throws SQLException {
 		// Get the patent's hash values
 		final String selectPatent = "SELECT * FROM patent_abstract_min_hash WHERE pub_doc_number = ?";
@@ -146,27 +149,35 @@ public class Database {
 		}
 
 		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM patent_abstract_min_hash WHERE pub_doc_number!=?");
+		String SQLTable;
+		if(type.equals(SimilarityType.ABSTRACT)) {
+			SQLTable = "patent_abstract_min_hash";
+		} else if(type.equals(SimilarityType.DESCRIPTION)) {
+			SQLTable = "patent_description_min_hash";
+		} else if(type.equals(SimilarityType.CLAIM)){ 
+			SQLTable = "patent_claim_min_hash";
+		} else {
+			return null;
+		}
+			
+		similarSelect.add("as similarity FROM "+SQLTable+" WHERE pub_doc_number!=?");
 		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
-		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
-				.toString());
+		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setString(1, patent);
 		ps2.setInt(2, limit);
 
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
 		results = ps2.executeQuery();
 		while (results.next()) {
-			patents.add(new PatentResult(results.getString(1), results
-					.getInt(2)));
+			patents.add(new PatentResult(results.getString(1), results.getInt(2)));
 		}
 		return patents;
 
 	}
 
-	public static ArrayList<PatentResult> similarPatents(
-			List<Integer> minHashValues, int limit) throws SQLException {
+	public static ArrayList<PatentResult> similarPatents(List<Integer> minHashValues, SimilarityType type, int limit) throws SQLException {
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,");
@@ -187,7 +198,18 @@ public class Database {
 		}
 
 		similarSelect.add(join.toString());
-		similarSelect.add("as similarity FROM patent_abstract_min_hash");
+		String SQLTable;
+		if(type.equals(SimilarityType.ABSTRACT)) {
+			SQLTable = "patent_abstract_min_hash";
+		} else if(type.equals(SimilarityType.DESCRIPTION)) {
+			SQLTable = "patent_description_min_hash";
+		} else if(type.equals(SimilarityType.CLAIM)){ 
+			SQLTable = "patent_claim_min_hash";
+		} else {
+			return null;
+		}
+			
+		similarSelect.add("as similarity FROM "+SQLTable+" ");
 		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
