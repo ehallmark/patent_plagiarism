@@ -13,7 +13,7 @@ import java.util.StringJoiner;
 
 public class Database {
 	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
-	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
+	private static String outUrl = "jdbc:postgresql://192.168.1.63/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastPatentIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
 	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
 
@@ -119,8 +119,21 @@ public class Database {
 
 	public static ArrayList<PatentResult> similarPatents(String patent,SimilarityType type,
 			int limit) throws SQLException {
+		String SQLTable;
+		boolean isClaim = false;
+		if(type.equals(SimilarityType.ABSTRACT)) {
+			SQLTable = "patent_abstract_min_hash";
+		} else if(type.equals(SimilarityType.DESCRIPTION)) {
+			SQLTable = "patent_description_min_hash";
+		} else if(type.equals(SimilarityType.CLAIM)){ 
+			isClaim = true;
+			SQLTable = "patent_claim_min_hash";
+		} else {
+			return null;
+		}
+		
 		// Get the patent's hash values
-		final String selectPatent = "SELECT * FROM patent_abstract_min_hash WHERE pub_doc_number = ?";
+		final String selectPatent = "SELECT * FROM "+SQLTable+" WHERE pub_doc_number = ?";
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
 		ps.setString(1, patent);
 
@@ -148,21 +161,11 @@ public class Database {
 			return null;
 		}
 
-		similarSelect.add(join.toString());
-		String SQLTable;
-		if(type.equals(SimilarityType.ABSTRACT)) {
-			SQLTable = "patent_abstract_min_hash";
-		} else if(type.equals(SimilarityType.DESCRIPTION)) {
-			SQLTable = "patent_description_min_hash";
-		} else if(type.equals(SimilarityType.CLAIM)){ 
-			SQLTable = "patent_claim_min_hash";
-		} else {
-			return null;
-		}
-			
-		similarSelect.add("as similarity FROM "+SQLTable+" WHERE pub_doc_number!=?");
-		similarSelect.add(where.toString());
-		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
+		similarSelect.add(join.toString()).add("as similarity");
+		if(isClaim)similarSelect.add(",claim_number");
+		similarSelect.add("FROM "+SQLTable+" WHERE pub_doc_number!=?")
+		.add(where.toString())
+		.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setString(1, patent);
@@ -170,8 +173,14 @@ public class Database {
 
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
 		results = ps2.executeQuery();
-		while (results.next()) {
-			patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+		if(!isClaim) {
+			while (results.next()) {
+				patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+			}
+		} else { // Dealing with claims
+			while (results.next()) {
+				patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+			}
 		}
 		return patents;
 
@@ -199,31 +208,36 @@ public class Database {
 
 		similarSelect.add(join.toString());
 		String SQLTable;
+		boolean isClaim = false;
 		if(type.equals(SimilarityType.ABSTRACT)) {
 			SQLTable = "patent_abstract_min_hash";
 		} else if(type.equals(SimilarityType.DESCRIPTION)) {
 			SQLTable = "patent_description_min_hash";
 		} else if(type.equals(SimilarityType.CLAIM)){ 
 			SQLTable = "patent_claim_min_hash";
+			isClaim = true;
 		} else {
 			return null;
 		}
 			
-		similarSelect.add("as similarity FROM "+SQLTable+" ");
+		similarSelect.add("as similarity FROM "+SQLTable);
 		similarSelect.add(where.toString());
 		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
 
-		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect
-				.toString());
+		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setInt(1, limit);
 
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
 		ResultSet results = ps2.executeQuery();
-		while (results.next()) {
-			patents.add(new PatentResult(results.getString(1), results
-					.getInt(2)));
+		if(!isClaim) {
+			while (results.next()) {
+				patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+			}
+		} else { // Dealing with claims
+			while (results.next()) {
+				patents.add(new ClaimResult(results.getString(1), results.getInt(2), results.getInt(3)));
+			}
 		}
-
 		return patents;
 	}
 

@@ -22,7 +22,7 @@ public class Search {
 	private static final int DEFAULT_LIMIT = 10;
 	
 	private static StringJoiner freshTemplate() {
-		return new StringJoiner("","<div style='width:100%; padding: 2% 10%;'><h2>Similar Patent Finder</h2><hr />","</div>");
+		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Similar Patent Finder</a></h2><hr />","<br /><hr/><br/><p>*Make sure cookies are enabled by your browser*</p><p>**Estimation Error is &plusmn;10%**</p></div>");
 	}
 	
 	public static void server() {
@@ -38,15 +38,15 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			String html =  "<h3>By Patent</h3>"
 				+ "<form action='/find_by_patent' method='get'>"
-					+ "<label style='margin-right:15px;'>Patent Number:</label><input id='patent' name='patent' /><br/>"
-					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
+					+ "<label style='margin: 5px 10px;'>Patent:</label><input id='patent' name='patent' /><br/>"
+					+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
 					+ "<button>Search</button>"
 
-				+ "</form><br/>"
-				+ "<h3>By Raw Text</h3>"
+				+ "</form>"
+				+ "<h3>By Text</h3>"
 				+ "<form action='/find_by_text' method='post'>"
-					+ "<label style='margin-right:15px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
-					+ "<textarea rows='10' cols='50' id='text' name='text' ></textarea><br/><br />"
+					+ "<label style='margin: 5px 10px; vertical-text-align: top; text-align:top; vertical-align:top;'>Text:</label><textarea rows='10' cols='50' id='text' name='text' ></textarea><br/>"
+					+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
 					+ "<button>Search</button>"
 				+ "</form>";
 			template.add(html);
@@ -61,12 +61,11 @@ public class Search {
 			// set cookie
 			res.cookie("limit", limit.toString());
 				
-			if(patent==null) return "Please provide a patent number!";
+			if(patent==null || patent.trim().length()==0) return template.add("<b>Please provide a patent number!</b>").toString();
 			else {patent=patent.toUpperCase().trim().replaceAll("US","").replaceAll("[^0-9A-Z]", "");}
 						
 			SimilarityType type = getSimilarityType(req);
 			res.cookie("by", type.toString().toLowerCase());
-		
 
 			PatentResult pr = new PatentResult(patent,0);
 			String title = "<h3>Showing "+limit+" most similar patents to "+ pr.getUrl()+pr.getExternalUrl()+"</h3>";
@@ -79,8 +78,9 @@ public class Search {
 		post("/find_by_text", (req, res) -> {
 			StringJoiner template = freshTemplate();
 			String text = req.queryParams("text");
-			if(text==null) return "Please provide some text!";
-	
+			if(text==null) return  template.add("<b>Please provide some text!</b>").toString();
+			else {text=text.toUpperCase().replaceAll("[^0-9A-Za-z ,.:;]", "");}
+			
 			Integer limit = getLimit(req);
 			// set cookie
 			res.cookie("limit", limit.toString());
@@ -88,17 +88,16 @@ public class Search {
 			// Create min hash for this text
 			Patent p;
 			try {
-				p = new Patent("",text,text);
+				p = new Patent("",text,"");
 			} catch (Exception e) {
 				e.printStackTrace();
-				return "Unable to perform search. Try providing more text!";
+				return template.add("<b>Unable to perform search. Try providing more text!</b>").toString();
 			}
 			
 			SimilarityType type = getSimilarityType(req);
 			// set cookie
 			res.cookie("by", type.toString().toLowerCase());
 			
-	
 			String title = "<h3>Showing "+limit+" most similar patents</h3>";
 			template.add(title+resultsToHTML(Database.similarPatents(p.getAbstractValues(),type,limit),type, req));
 			return template.toString();
@@ -162,6 +161,7 @@ public class Search {
 		} else if (type.equals(SimilarityType.CLAIM)) {
 			claimBtn = "<button disabled>Claims</button>";
 		}			
+		
 		StringJoiner subtitle = new StringJoiner("","<h4>By Similarity Of ","</h4>");
 		form1.add(absBtn); form2.add(descBtn); form3.add(claimBtn); subtitle.add(form1.toString()+form2.toString()+form3.toString());
 		
