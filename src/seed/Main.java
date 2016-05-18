@@ -13,7 +13,7 @@ public class Main {
 	public static final double SIGNIFICANCE_RATIO = 0.15;
 	private ArrayBlockingQueue<QueueSender> queue;
 	private volatile boolean kill = false;
-	public static int FETCH_SIZE = 20;
+	public static int FETCH_SIZE = 5;
 	public static final int SEED_PATENTS = 1;
 	public static final int SEED_CLAIMS = 2;
 
