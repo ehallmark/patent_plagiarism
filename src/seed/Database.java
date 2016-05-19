@@ -229,7 +229,9 @@ public class Database {
 			return null;
 		}
 			
-		similarSelect.add("as similarity FROM "+SQLTable)
+		similarSelect.add("as similarity");
+		if(isClaim)similarSelect.add(",claim_number");
+		similarSelect.add("FROM "+SQLTable)
 		.add(where.toString())
 		.add("ORDER BY similarity DESC LIMIT ?");
 

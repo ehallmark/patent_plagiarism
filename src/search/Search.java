@@ -18,50 +18,42 @@ import spark.Request;
 
 
 
+
 public class Search {	
 	private static final int DEFAULT_LIMIT = 10;
-	private static Integer patentCount;
-	private static Integer claimCount;
+	private static final String HTML =  "<h3>By Patent</h3>"
+			+ "<form action='/find_by_patent' method='get'>"
+			+ "<label style='margin: 5px 10px;'>Patent:</label><input id='patent' name='patent' /><br/>"
+			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
+			+ "<button>Search</button>"
+
+		+ "</form>"
+		+ "<h3>By Text</h3>"
+		+ "<form action='/find_by_text' method='post'>"
+			+ "<label style='margin: 5px 10px; vertical-text-align: top; text-align:top; vertical-align:top;'>Text:</label><textarea rows='10' cols='50' id='text' name='text' ></textarea><br/>"
+			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
+			+ "<button>Search</button>"
+		+ "</form>";
 	
 	private static StringJoiner freshTemplate() {
-		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Similar Patent Finder</a></h2><hr />","<br /><b>Searching "+patentCount+" Patents and "+claimCount+" Claims</b><hr/><br/></div>");
+		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Similar Patent Finder</a></h2><hr/>","<br /><hr/>"+HTML+"</div>");
 	}
 	
 	public static void server() {
 		try {
 			Class.forName("org.postgresql.Driver");
-			// Get current counts
-			patentCount = Database.patentCount();
-			claimCount = Database.claimCount();
 		} catch (ClassNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return;
-		} catch(SQLException sqle) {
-			sqle.printStackTrace();
-			return;
-		}
-		System.out.println("Patent Count: "+patentCount);
-		System.out.println("Claim Count: "+claimCount);
-
+		} 
 		
 		get("/", (req, res) -> {
 			res.type("text/html");
 			StringJoiner template = freshTemplate();
-			String html =  "<h3>By Patent</h3>"
-				+ "<form action='/find_by_patent' method='get'>"
-					+ "<label style='margin: 5px 10px;'>Patent:</label><input id='patent' name='patent' /><br/>"
-					+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
-					+ "<button>Search</button>"
-
-				+ "</form>"
-				+ "<h3>By Text</h3>"
-				+ "<form action='/find_by_text' method='post'>"
-					+ "<label style='margin: 5px 10px; vertical-text-align: top; text-align:top; vertical-align:top;'>Text:</label><textarea rows='10' cols='50' id='text' name='text' ></textarea><br/>"
-					+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
-					+ "<button>Search</button>"
-				+ "</form>";
-			template.add(html);
+			SimilarityType type = getSimilarityType(req);
+			res.cookie("by", type.toString().toLowerCase());
+			template.add(resultsToHTML(new ArrayList<PatentResult>(),type,req));
 			return template.toString();
 		});
 		
@@ -80,7 +72,7 @@ public class Search {
 			res.cookie("by", type.toString().toLowerCase());
 
 			PatentResult pr = new PatentResult(patent,0);
-			String title = "<h3>Showing "+limit+" most similar patents to "+ pr.getUrl()+pr.getExternalUrl()+"</h3>";
+			String title = "<h4>Results for Patent "+pr.getUrl()+pr.getExternalUrl()+"</h4>";
 			
 			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit),type, req));
 			
@@ -110,8 +102,7 @@ public class Search {
 			// set cookie
 			res.cookie("by", type.toString().toLowerCase());
 			
-			String title = "<h3>Showing "+limit+" most similar patents</h3>";
-			template.add(title+resultsToHTML(Database.similarPatents(p.getAbstractValues(),type,limit),type, req));
+			template.add(resultsToHTML(Database.similarPatents(p.getAbstractValues(),type,limit),type, req));
 			return template.toString();
 		});
 	}
