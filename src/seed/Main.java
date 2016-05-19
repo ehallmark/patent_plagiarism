@@ -7,8 +7,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
 	public static final int LEN_SHINGLES = 8;
-	public static final int NUM_BANDS = 100;
-	public static final int LEN_BANDS = 2;
+	public static final int NUM_BANDS = 66;
+	public static final int LEN_BANDS = 3;
 	public static final int NUM_HASH_FUNCTIONS = NUM_BANDS * LEN_BANDS;
 	public static final double SIGNIFICANCE_RATIO = 0.15;
 	private ArrayBlockingQueue<QueueSender> queue;

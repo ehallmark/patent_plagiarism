@@ -164,7 +164,7 @@ public class Database {
 					and.add(inner);
 				} 
 				// First 10 have indices on the columns
-				if(i<5)where.add(and.toString());
+				if(i<10)where.add(and.toString());
 			}
 		} else {
 			return null;
@@ -212,7 +212,7 @@ public class Database {
 				join.add(inner + "::int");
 				and.add(inner);
 			}
-		    if(i<5)where.add(and.toString());
+		    if(i<10)where.add(and.toString());
 		}
 
 		similarSelect.add(join.toString());
