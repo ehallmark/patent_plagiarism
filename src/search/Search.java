@@ -20,19 +20,31 @@ import spark.Request;
 
 public class Search {	
 	private static final int DEFAULT_LIMIT = 10;
+	private static Integer patentCount;
+	private static Integer claimCount;
 	
 	private static StringJoiner freshTemplate() {
-		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Similar Patent Finder</a></h2><hr />","<br /><hr/><br/><p>*Make sure cookies are enabled by your browser*</p><p>**Estimation Error is &plusmn;10%**</p></div>");
+		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Similar Patent Finder</a></h2><hr />","<br /><b>Searching "+patentCount+" Patents and "+claimCount+" Claims</b><hr/><br/></div>");
 	}
 	
 	public static void server() {
 		try {
 			Class.forName("org.postgresql.Driver");
+			// Get current counts
+			patentCount = Database.patentCount();
+			claimCount = Database.claimCount();
 		} catch (ClassNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			return;
+		} catch(SQLException sqle) {
+			sqle.printStackTrace();
+			return;
 		}
+		System.out.println("Patent Count: "+patentCount);
+		System.out.println("Claim Count: "+claimCount);
+
+		
 		get("/", (req, res) -> {
 			res.type("text/html");
 			StringJoiner template = freshTemplate();

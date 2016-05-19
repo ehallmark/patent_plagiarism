@@ -133,7 +133,16 @@ public class Database {
 		}
 		
 		// Get the patent's hash values
-		final String selectPatent = "SELECT * FROM "+SQLTable+" WHERE pub_doc_number = ?";
+		String selectPatent;
+		if(isClaim) {
+			StringJoiner select = new StringJoiner(",","SELECT "," FROM "+SQLTable+" WHERE pub_doc_number = ?");
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
+				select.add("LEAST(m" + i + ")");
+			}
+			selectPatent = select.toString();
+		} else {
+			selectPatent = "SELECT * FROM "+SQLTable+" WHERE pub_doc_number = ?";
+		}
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
 		ps.setString(1, patent);
 
@@ -179,7 +188,7 @@ public class Database {
 			}
 		} else { // Dealing with claims
 			while (results.next()) {
-				patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+				patents.add(new ClaimResult(results.getString(1), results.getInt(2), results.getInt(3)));
 			}
 		}
 		return patents;
@@ -220,9 +229,9 @@ public class Database {
 			return null;
 		}
 			
-		similarSelect.add("as similarity FROM "+SQLTable);
-		similarSelect.add(where.toString());
-		similarSelect.add("ORDER BY similarity DESC LIMIT ?");
+		similarSelect.add("as similarity FROM "+SQLTable)
+		.add(where.toString())
+		.add("ORDER BY similarity DESC LIMIT ?");
 
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setInt(1, limit);
@@ -338,7 +347,20 @@ public class Database {
 		return values;
 	}
 
+	public static Integer claimCount() throws SQLException {
+		ResultSet rs = mainConn.prepareStatement("SELECT count(*) FROM patent_claim_min_hash").executeQuery(); 
+		if(rs.next()) {
+			return rs.getInt(1);
+		}
+		return null;	}
 
+	public static Integer patentCount() throws SQLException {
+		ResultSet rs = mainConn.prepareStatement("SELECT count(*) FROM patent_abstract_min_hash").executeQuery(); 
+		if(rs.next()) {
+			return rs.getInt(1);
+		}
+		return null;
+	}
 
 
 }
