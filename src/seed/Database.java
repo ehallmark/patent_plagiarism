@@ -83,6 +83,7 @@ public class Database {
 			ps.executeUpdate();
 			ps.close();
 		}
+		System.out.println(p.getName());
 		
 	}
 	
@@ -112,6 +113,8 @@ public class Database {
 			PreparedStatement ps = mainConn.prepareStatement(insert.toString());
 			ps.executeUpdate();
 			ps.close();
+			System.out.println(claim.getPatentName()+" claim "+claim.getClaimNum());
+
 		}
 		
 	}
@@ -163,8 +166,8 @@ public class Database {
 					join.add(inner + "::int");
 					and.add(inner);
 				} 
-				// First 10 have indices on the columns
-				if(i<10)where.add(and.toString());
+				// First 15 columns have indices 
+				if(i<5)where.add(and.toString());
 			}
 		} else {
 			return null;
@@ -212,7 +215,7 @@ public class Database {
 				join.add(inner + "::int");
 				and.add(inner);
 			}
-		    if(i<10)where.add(and.toString());
+		    if(i<5)where.add(and.toString());
 		}
 
 		similarSelect.add(join.toString());

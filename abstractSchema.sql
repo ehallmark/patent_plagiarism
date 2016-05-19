@@ -9,7 +9,7 @@ DO language 'plpgsql'
 $$
 DECLARE patent_hash text :=  'CREATE TABLE patent_abstract_min_hash('
     || string_agg('m' || i::text || ' integer', ',') || ');'
-    FROM generate_series(1,200) As i;
+    FROM generate_series(1,150) As i;
 BEGIN
     EXECUTE patent_hash; 
 END;
@@ -33,9 +33,5 @@ CREATE INDEX m12_index ON patent_abstract_min_hash (m12);
 CREATE INDEX m13_index ON patent_abstract_min_hash (m13);
 CREATE INDEX m14_index ON patent_abstract_min_hash (m14);
 CREATE INDEX m15_index ON patent_abstract_min_hash (m15);
-CREATE INDEX m16_index ON patent_abstract_min_hash (m16);
-CREATE INDEX m17_index ON patent_abstract_min_hash (m17);
-CREATE INDEX m18_index ON patent_abstract_min_hash (m18);
-CREATE INDEX m19_index ON patent_abstract_min_hash (m19);
-CREATE INDEX m20_index ON patent_abstract_min_hash (m20);
+
 

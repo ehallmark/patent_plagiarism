@@ -6,13 +6,13 @@ import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
-	public static final int LEN_SHINGLES = 8;
-	public static final int NUM_BANDS = 66;
+	public static final int LEN_SHINGLES = 7;
+	public static final int NUM_BANDS = 50;
 	public static final int LEN_BANDS = 3;
 	public static final int NUM_HASH_FUNCTIONS = NUM_BANDS * LEN_BANDS;
 	public static final double SIGNIFICANCE_RATIO = 0.15;
 	private ArrayBlockingQueue<QueueSender> queue;
-	private volatile boolean kill = false;
+	private boolean kill = false;
 	public static int FETCH_SIZE = 5;
 	public static final int SEED_PATENTS = 1;
 	public static final int SEED_CLAIMS = 2;
@@ -35,36 +35,38 @@ public class Main {
 			public void run() {
 				QueueSender res = null;
 				try {
-					while (!kill) {
-						if ((res = queue.poll()) == null) {
-							Thread.sleep(50);
-							continue;
-						}
-						if(seedType==Main.SEED_PATENTS)  {
+					if(seedType==Main.SEED_PATENTS)  {
+						while (!kill) {
+							if ((res = queue.poll()) == null) {
+								Thread.sleep(50);
+								continue;
+							}
 							try {
-								Patent p = new Patent(res.arg1, res.arg2, res.arg3);
-								Database.insertPatent(p);
-								System.out.println(p.getName());
+								Database.insertPatent(new Patent(res.arg1, res.arg2, res.arg3));
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 								continue;
 							}
-						} else if(seedType==Main.SEED_CLAIMS) {
+							System.gc();
+						}
+					}  else if(seedType==Main.SEED_CLAIMS) {
+						while (!kill) {
+							if ((res = queue.poll()) == null) {
+								Thread.sleep(50);
+								continue;
+							}
 							try {
-								Claim c = new Claim(res.arg1, res.arg2, res.int1, res.int2);
-								Database.insertClaim(c);
-								System.out.println(c.getPatentName()+" claim "+c.getClaimNum());
-
+								Database.insertClaim(new Claim(res.arg1, res.arg2, res.int1, res.int2));
+	
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 								continue;
 							}
 						}
-
-						System.gc();
 					}
+
 
 
 				} catch (InterruptedException e) {
