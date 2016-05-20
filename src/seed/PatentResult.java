@@ -11,7 +11,7 @@ public class PatentResult {
 	}
 
 	public String getSimilarity() {
-		if(similarity!=null) return "%" + (int) (similarity / (Main.NUM_HASH_FUNCTIONS / 100));
+		if(similarity!=null) return "%" + similarity * 100 / Main.NUM_HASH_FUNCTIONS;
 		else return "N/A";
 	}
 	
