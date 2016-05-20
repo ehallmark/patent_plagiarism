@@ -18,24 +18,19 @@ $$ ;
 
 ALTER TABLE patent_claim_min_hash ADD COLUMN pub_doc_number varchar(100);
 ALTER TABLE patent_claim_min_hash ADD COLUMN claim_number integer;
-ALTER TABLE patent_claim_min_hash ADD COLUMN uid serial;
 
 CREATE INDEX claim_number_index on patent_claim_min_hash(claim_number);
-CREATE INDEX pub_doc_number_claim_number_index on patent_claim_min_hash(pub_doc_number,claim_number);
-CREATE INDEX cm1_index ON patent_claim_min_hash (m1);
-CREATE INDEX cm2_index ON patent_claim_min_hash (m2);
-CREATE INDEX cm3_index ON patent_claim_min_hash (m3);
-CREATE INDEX cm4_index ON patent_claim_min_hash (m4);
-CREATE INDEX cm5_index ON patent_claim_min_hash (m5);
-CREATE INDEX cm6_index ON patent_claim_min_hash (m6);
-CREATE INDEX cm7_index ON patent_claim_min_hash (m7);
-CREATE INDEX cm8_index ON patent_claim_min_hash (m8);
-CREATE INDEX cm9_index ON patent_claim_min_hash (m9);
-CREATE INDEX cm10_index ON patent_claim_min_hash (m10);
-CREATE INDEX cm11_index ON patent_claim_min_hash (m11);
-CREATE INDEX cm12_index ON patent_claim_min_hash (m12);
-CREATE INDEX cm13_index ON patent_claim_min_hash (m13);
-CREATE INDEX cm14_index ON patent_claim_min_hash (m14);
-CREATE INDEX cm15_index ON patent_claim_min_hash (m15);
+CREATE UNIQUE INDEX pub_doc_number_claim_number_index on patent_claim_min_hash(pub_doc_number,claim_number);
+
+
+DO language 'plpgsql'
+$$
+DECLARE patent_claim_index text :=  string_agg('CREATE INDEX cm' || i::text || '_index ON patent_claim_min_hash (m' || i::text || ');', ' ') 
+    FROM generate_series(1,15) As i;
+BEGIN
+    EXECUTE patent_claim_index; 
+END;
+$$ ;
+
 
 

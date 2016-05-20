@@ -167,7 +167,7 @@ public class Database {
 					and.add(inner);
 				} 
 				// First 15 columns have indices 
-			    if(i<10)where.add(and.toString());
+			    if((i<10 && !isClaim) || i<5)where.add(and.toString());
 			}
 		} else {
 			return null;
@@ -199,6 +199,19 @@ public class Database {
 	}
 
 	public static ArrayList<PatentResult> similarPatents(List<Integer> minHashValues, SimilarityType type, int limit) throws SQLException {
+		String SQLTable;
+		boolean isClaim = false;
+		if(type.equals(SimilarityType.ABSTRACT)) {
+			SQLTable = "patent_abstract_min_hash";
+		} else if(type.equals(SimilarityType.DESCRIPTION)) {
+			SQLTable = "patent_description_min_hash";
+		} else if(type.equals(SimilarityType.CLAIM)){ 
+			SQLTable = "patent_claim_min_hash";
+			isClaim = true;
+		} else {
+			return null;
+		}
+		
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
 		similarSelect.add("SELECT pub_doc_number,");
@@ -215,22 +228,10 @@ public class Database {
 				join.add(inner + "::int");
 				and.add(inner);
 			}
-		    if(i<10)where.add(and.toString());
+		    if((i<10 && !isClaim) || i<5)where.add(and.toString());
 		}
 
 		similarSelect.add(join.toString());
-		String SQLTable;
-		boolean isClaim = false;
-		if(type.equals(SimilarityType.ABSTRACT)) {
-			SQLTable = "patent_abstract_min_hash";
-		} else if(type.equals(SimilarityType.DESCRIPTION)) {
-			SQLTable = "patent_description_min_hash";
-		} else if(type.equals(SimilarityType.CLAIM)){ 
-			SQLTable = "patent_claim_min_hash";
-			isClaim = true;
-		} else {
-			return null;
-		}
 			
 		similarSelect.add("as similarity");
 		if(isClaim)similarSelect.add(",claim_number");

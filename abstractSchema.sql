@@ -7,31 +7,22 @@ DROP SEQUENCE IF EXISTS patent_abstract_min_hash_uid_seq;
 
 DO language 'plpgsql'
 $$
-DECLARE patent_hash text :=  'CREATE TABLE patent_abstract_min_hash('
+DECLARE patent_abstract_min_hash text :=  'CREATE TABLE patent_abstract_min_hash('
     || string_agg('m' || i::text || ' integer', ',') || ');'
     FROM generate_series(1,150) As i;
 BEGIN
-    EXECUTE patent_hash; 
+    EXECUTE patent_abstract_min_hash; 
 END;
 $$ ;
 
 
 ALTER TABLE patent_abstract_min_hash ADD COLUMN pub_doc_number varchar(100) PRIMARY KEY;
-ALTER TABLE patent_abstract_min_hash ADD COLUMN uid serial;
-CREATE INDEX m1_index ON patent_abstract_min_hash (m1);
-CREATE INDEX m2_index ON patent_abstract_min_hash (m2);
-CREATE INDEX m3_index ON patent_abstract_min_hash (m3);
-CREATE INDEX m4_index ON patent_abstract_min_hash (m4);
-CREATE INDEX m5_index ON patent_abstract_min_hash (m5);
-CREATE INDEX m6_index ON patent_abstract_min_hash (m6);
-CREATE INDEX m7_index ON patent_abstract_min_hash (m7);
-CREATE INDEX m8_index ON patent_abstract_min_hash (m8);
-CREATE INDEX m9_index ON patent_abstract_min_hash (m9);
-CREATE INDEX m10_index ON patent_abstract_min_hash (m10);
-CREATE INDEX m11_index ON patent_abstract_min_hash (m11);
-CREATE INDEX m12_index ON patent_abstract_min_hash (m12);
-CREATE INDEX m13_index ON patent_abstract_min_hash (m13);
-CREATE INDEX m14_index ON patent_abstract_min_hash (m14);
-CREATE INDEX m15_index ON patent_abstract_min_hash (m15);
 
-
+DO language 'plpgsql'
+$$
+DECLARE patent_abstract_index text :=  string_agg('CREATE INDEX m' || i::text || '_index ON patent_abstract_min_hash (m' || i::text || ');', ' ') 
+    FROM generate_series(1,30) As i;
+BEGIN
+    EXECUTE patent_abstract_index; 
+END;
+$$ ;
