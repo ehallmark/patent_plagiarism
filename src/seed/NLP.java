@@ -75,19 +75,33 @@ public class NLP {
 	}
 	
 	public static List<Integer> createMinHash(String result, SimilarityType type) throws SQLException {
+		Integer numHashFunctions;
+		switch(type) {
+			case ABSTRACT: {
+				numHashFunctions=Main.NUM_HASH_FUNCTIONS_ABSTRACT;
+			} break;
+			case DESCRIPTION: {
+				numHashFunctions=Main.NUM_HASH_FUNCTIONS_DESCRIPTION;
+			} break;
+			case CLAIM: {
+				numHashFunctions=Main.NUM_HASH_FUNCTIONS_CLAIM;
+			} break;
+			default: {
+				numHashFunctions = null;
+			} break;
+		};
+		
 		List<Integer> MinHashVector = new ArrayList<Integer>();
 		Set<Integer> shingles = getShingles(result, type);
-		hashFunctions.forEach(hash -> {
+		hashFunctions.subList(0, numHashFunctions).forEach(hash -> {
 			int min = Integer.MAX_VALUE;
 			for (int shingle : shingles) {
 				int h = hash.getHashCode(shingle);
-				if (h < min)
-					min = h;
-			}
-			;
-			// Get the minimum value
-				MinHashVector.add(min);
-			});
+				if (h < min) min = h;
+			};
+		// Get the minimum value
+			MinHashVector.add(min);
+		});
 		System.gc();
 		return MinHashVector;
 	}
