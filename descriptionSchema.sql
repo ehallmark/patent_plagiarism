@@ -9,19 +9,19 @@ DO language 'plpgsql'
 $$
 DECLARE patent_description_min_hash text :=  'CREATE TABLE patent_description_min_hash('
     || string_agg('m' || i::text || ' integer', ',') || ');'
-    FROM generate_series(1,150) As i;
+    FROM generate_series(1,300) As i;
 BEGIN
     EXECUTE patent_description_min_hash; 
 END;
 $$ ;
 
 
-ALTER TABLE patent_description_min_hash ADD COLUMN pub_doc_number varchar(100) PRIMARY KEY;
+ALTER TABLE patent_description_min_hash ADD COLUMN pub_doc_number varchar(25) PRIMARY KEY;
 
 DO language 'plpgsql'
 $$
-DECLARE patent_description_index text :=  string_agg('CREATE INDEX dm' || i::text || '_index ON patent_description_min_hash (m' || i::text || ');', ' ') 
-    FROM generate_series(1,30) As i;
+DECLARE patent_description_index text :=  string_agg('CREATE INDEX desc' || i::text || '_index ON patent_description_min_hash (m' || i::text || ',m' || (i+1)::text || ',m' || (i+2)::text || ');', ' ') 
+    FROM generate_series(1,120,3) As i;
 BEGIN
     EXECUTE patent_description_index; 
 END;

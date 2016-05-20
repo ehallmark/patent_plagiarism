@@ -41,17 +41,17 @@ public class Database {
 	};
 
 	public static void insertPatent(Patent p) throws SQLException {
-		StringJoiner columns = new StringJoiner(",", "(", ")");
-		
-		columns.add("pub_doc_number");
-		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
-			columns.add("m" + i);
-		}
 		// update abstract and description table separately
-	
 		
 		// Add patent values as array
 		if(p.getAbstractValues()!=null&&!p.getAbstractValues().isEmpty()) {
+			StringJoiner columns = new StringJoiner(",", "(", ")");
+			
+			columns.add("pub_doc_number");
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_ABSTRACT; i++) {
+				columns.add("m" + i);
+			}
+			
 			StringJoiner insertAbstract = new StringJoiner(" ");
 
 			insertAbstract.add("INSERT INTO patent_abstract_min_hash");
@@ -69,6 +69,13 @@ public class Database {
 		}
 			
 		if(p.getDescriptionValues()!=null&&!p.getDescriptionValues().isEmpty()) {
+			StringJoiner columns = new StringJoiner(",", "(", ")");
+			
+			columns.add("pub_doc_number");
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_DESCRIPTION; i++) {
+				columns.add("m" + i);
+			}
+			
 			StringJoiner insertDescription = new StringJoiner(" ");
 			insertDescription.add("INSERT INTO patent_description_min_hash");
 			insertDescription.add(columns.toString());
@@ -95,7 +102,7 @@ public class Database {
 			
 			columns.add("pub_doc_number");
 			columns.add("claim_number");
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
 				columns.add("m" + i);
 			}
 			// update abstract and description table separately
@@ -124,22 +131,39 @@ public class Database {
 			int limit) throws SQLException {
 		String SQLTable;
 		boolean isClaim = false;
-		if(type.equals(SimilarityType.ABSTRACT)) {
-			SQLTable = "patent_abstract_min_hash";
-		} else if(type.equals(SimilarityType.DESCRIPTION)) {
-			SQLTable = "patent_description_min_hash";
-		} else if(type.equals(SimilarityType.CLAIM)){ 
-			isClaim = true;
-			SQLTable = "patent_claim_min_hash";
-		} else {
-			return null;
+		Integer numBands;
+		Integer bandLength;
+		Integer numBandsForLSH;
+		switch(type) {
+			case ABSTRACT: {
+				SQLTable = "patent_abstract_min_hash";
+				numBandsForLSH = Main.NUM_BANDS_ABSTRACT;
+				bandLength = Main.LEN_BANDS_ABSTRACT;
+				numBands = Main.NUM_HASH_FUNCTIONS_ABSTRACT/Main.LEN_BANDS_ABSTRACT;
+			} break;
+			case DESCRIPTION: {
+				SQLTable = "patent_description_min_hash";
+				numBandsForLSH = Main.NUM_BANDS_DESCRIPTION;
+				bandLength = Main.LEN_BANDS_DESCRIPTION;
+				numBands = Main.NUM_HASH_FUNCTIONS_DESCRIPTION/Main.LEN_BANDS_DESCRIPTION;
+			} break;
+			case CLAIM: {
+				SQLTable = "patent_claim_min_hash";
+				numBandsForLSH = Main.NUM_BANDS_CLAIM;
+				bandLength = Main.LEN_BANDS_CLAIM;
+				numBands = Main.NUM_HASH_FUNCTIONS_CLAIM/Main.LEN_BANDS_CLAIM;
+				isClaim = true;		
+			} break;
+			default: {
+				return null;
+			}
 		}
 		
 		// Get the patent's hash values
 		String selectPatent;
 		if(isClaim) {
 			StringJoiner select = new StringJoiner(",","SELECT "," FROM "+SQLTable+" WHERE pub_doc_number = ?");
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS; i++) {
+			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
 				select.add("LEAST(m" + i + ")");
 			}
 			selectPatent = select.toString();
@@ -158,16 +182,16 @@ public class Database {
 		StringJoiner and;
 		int n;
 		if (results.next()) {
-			for (int i = 0; i < Main.NUM_BANDS; i++) {
+			for (int i = 0; i < numBands; i++) {
 				and = new StringJoiner(" and ","(",")");
-				for (int j = 0; j < Main.LEN_BANDS; j++) {
-					n = i * Main.LEN_BANDS + j + 1;
+				for (int j = 0; j < bandLength; j++) {
+					n = i * bandLength + j + 1;
 					String inner = "(m" + n + "=" + results.getInt(n) + ")";
 					join.add(inner + "::int");
 					and.add(inner);
 				} 
 				// First 15 columns have indices 
-			    if((i<10 && !isClaim) || i<5)where.add(and.toString());
+			    if(i<numBandsForLSH)where.add(and.toString());
 			}
 		} else {
 			return null;
@@ -187,11 +211,11 @@ public class Database {
 		results = ps2.executeQuery();
 		if(!isClaim) {
 			while (results.next()) {
-				patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+				patents.add(new PatentResult(results.getString(1), results.getInt(2), type));
 			}
 		} else { // Dealing with claims
 			while (results.next()) {
-				patents.add(new ClaimResult(results.getString(1), results.getInt(2), results.getInt(3)));
+				patents.add(new ClaimResult(results.getString(1), results.getInt(2), type, results.getInt(3)));
 			}
 		}
 		return patents;
@@ -201,15 +225,32 @@ public class Database {
 	public static ArrayList<PatentResult> similarPatents(List<Integer> minHashValues, SimilarityType type, int limit) throws SQLException {
 		String SQLTable;
 		boolean isClaim = false;
-		if(type.equals(SimilarityType.ABSTRACT)) {
-			SQLTable = "patent_abstract_min_hash";
-		} else if(type.equals(SimilarityType.DESCRIPTION)) {
-			SQLTable = "patent_description_min_hash";
-		} else if(type.equals(SimilarityType.CLAIM)){ 
-			SQLTable = "patent_claim_min_hash";
-			isClaim = true;
-		} else {
-			return null;
+		Integer numBands;
+		Integer bandLength;
+		Integer numBandsForLSH;
+		switch(type) {
+			case ABSTRACT: {
+				SQLTable = "patent_abstract_min_hash";
+				numBandsForLSH = Main.NUM_BANDS_ABSTRACT;
+				bandLength = Main.LEN_BANDS_ABSTRACT;
+				numBands = Main.NUM_HASH_FUNCTIONS_ABSTRACT/Main.LEN_BANDS_ABSTRACT;
+			} break;
+			case DESCRIPTION: {
+				SQLTable = "patent_description_min_hash";
+				numBandsForLSH = Main.NUM_BANDS_DESCRIPTION;
+				bandLength = Main.LEN_BANDS_DESCRIPTION;
+				numBands = Main.NUM_HASH_FUNCTIONS_DESCRIPTION/Main.LEN_BANDS_DESCRIPTION;
+			} break;
+			case CLAIM: {
+				SQLTable = "patent_claim_min_hash";
+				numBandsForLSH = Main.NUM_BANDS_CLAIM;
+				bandLength = Main.LEN_BANDS_CLAIM;
+				numBands = Main.NUM_HASH_FUNCTIONS_CLAIM/Main.LEN_BANDS_CLAIM;
+				isClaim = true;		
+			} break;
+			default: {
+				return null;
+			}
 		}
 		
 		// Construct query based on number of bands and length of bands
@@ -219,18 +260,18 @@ public class Database {
 		StringJoiner where = new StringJoiner(" or ","WHERE (",")");
 		StringJoiner and;
 		int n;
-		for (int i = 0; i < Main.NUM_BANDS; i++) {
+		for (int i = 0; i < numBands; i++) {
 			and = new StringJoiner(" and ","(",")");
-			for (int j = 0; j < Main.LEN_BANDS; j++) {
-				n = i * Main.LEN_BANDS + j;
+			for (int j = 0; j < bandLength; j++) {
+				n = i * bandLength + j;
 				String inner = "(m" + (n + 1) + "=" + minHashValues.get(n)
 						+ ")";
 				join.add(inner + "::int");
 				and.add(inner);
 			}
-		    if((i<10 && !isClaim) || i<5)where.add(and.toString());
+		    if(i<numBandsForLSH)where.add(and.toString());
 		}
-
+	
 		similarSelect.add(join.toString());
 			
 		similarSelect.add("as similarity");
@@ -246,11 +287,11 @@ public class Database {
 		ResultSet results = ps2.executeQuery();
 		if(!isClaim) {
 			while (results.next()) {
-				patents.add(new PatentResult(results.getString(1), results.getInt(2)));
+				patents.add(new PatentResult(results.getString(1), results.getInt(2), type));
 			}
 		} else { // Dealing with claims
 			while (results.next()) {
-				patents.add(new ClaimResult(results.getString(1), results.getInt(2), results.getInt(3)));
+				patents.add(new ClaimResult(results.getString(1), results.getInt(2), type, results.getInt(3)));
 			}
 		}
 		return patents;

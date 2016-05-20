@@ -6,11 +6,21 @@ import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
-	public static final int LEN_SHINGLES = 7;
-	public static final int NUM_BANDS = 50;
-	public static final int LEN_BANDS = 3;
-	public static final int NUM_HASH_FUNCTIONS = NUM_BANDS * LEN_BANDS;
-	public static final double SIGNIFICANCE_RATIO = 0.15;
+	public static final int LEN_SHINGLES_DESCRIPTION = 9;
+	public static final int NUM_BANDS_DESCRIPTION = 40;
+	public static final int LEN_BANDS_DESCRIPTION = 3;
+	public static final int NUM_HASH_FUNCTIONS_DESCRIPTION = 300;
+
+	public static final int LEN_SHINGLES_ABSTRACT = 7;
+	public static final int NUM_BANDS_ABSTRACT = 30;
+	public static final int LEN_BANDS_ABSTRACT = 3;
+	public static final int NUM_HASH_FUNCTIONS_ABSTRACT = 200;
+
+	public static final int LEN_SHINGLES_CLAIM = 6;
+	public static final int NUM_BANDS_CLAIM = 20;
+	public static final int LEN_BANDS_CLAIM = 3;
+	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
+	
 	private ArrayBlockingQueue<QueueSender> queue;
 	private boolean kill = false;
 	public static int FETCH_SIZE = 5;

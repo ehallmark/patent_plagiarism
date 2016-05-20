@@ -1,10 +1,12 @@
 package seed;
 
+import seed.Database.SimilarityType;
+
 public class ClaimResult extends PatentResult {
 	private Integer claimNumber;
 	
-	public ClaimResult(String name, Integer similarity, Integer claimNumber) {
-		super(name, similarity);
+	public ClaimResult(String name, Integer similarity, SimilarityType type, Integer claimNumber) {
+		super(name, similarity, type);
 		this.claimNumber = claimNumber;
 	}
 	

@@ -1,17 +1,34 @@
 package seed;
 
+import seed.Database.SimilarityType;
+
 public class PatentResult {
 	protected String name;
 	private Integer similarity;
+	private Integer num_functions;
 
 
-	public PatentResult(String name, Integer similarity) {
+	public PatentResult(String name, Integer similarity, SimilarityType type) {
 		this.name = name;
 		this.similarity = similarity;
+		switch(type) {
+			case ABSTRACT: {
+				num_functions = Main.NUM_HASH_FUNCTIONS_ABSTRACT;
+			} break;
+			case DESCRIPTION: {
+				num_functions = Main.NUM_HASH_FUNCTIONS_DESCRIPTION;
+			} break;
+			case CLAIM: {
+				num_functions = Main.NUM_HASH_FUNCTIONS_CLAIM;
+			} break;
+			default: {
+				num_functions = null;
+			} break;
+		}
 	}
 
 	public String getSimilarity() {
-		if(similarity!=null) return "%" + similarity * 100 / Main.NUM_HASH_FUNCTIONS;
+		if(similarity!=null) return "%" + similarity * 100 / num_functions;
 		else return "N/A";
 	}
 	

@@ -71,7 +71,7 @@ public class Search {
 			SimilarityType type = getSimilarityType(req);
 			res.cookie("by", type.toString().toLowerCase());
 
-			PatentResult pr = new PatentResult(patent,0);
+			PatentResult pr = new PatentResult(patent,0,null);
 			String title = "<h4>Results for Patent "+pr.getUrl()+pr.getExternalUrl()+"</h4>";
 			
 			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit),type, req));
@@ -194,8 +194,6 @@ public class Search {
 				Database.setupMainConn();
 			}
 			// Start server
-			Patent.setup();
-
 			server();
 
 		} catch (SQLException e) {

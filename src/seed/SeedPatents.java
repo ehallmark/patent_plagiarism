@@ -11,7 +11,6 @@ public class SeedPatents {
 					Main.FETCH_SIZE = Integer.parseInt(args[1]);
 				} catch (Exception e) {
 				}
-			Patent.setup();
 			Database.setupSeedConn();
 			Database.setupMainConn();
 			new Main(Main.SEED_PATENTS);

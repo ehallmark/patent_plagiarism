@@ -3,6 +3,8 @@ package seed;
 import java.sql.SQLException;
 import java.util.List;
 
+import seed.Database.SimilarityType;
+
 public class Claim {
 	public static Integer lastUid;
 	private String patentName;
@@ -13,7 +15,7 @@ public class Claim {
 		this.patentName = patentName;
 		this.claimNum = claimNum;
 		Claim.lastUid = lastUid;
-		values = Patent.createMinHash(NLP.getShingles(claimText));
+		values = NLP.createMinHash(claimText,SimilarityType.CLAIM);
 		if(claimNum==null || values.isEmpty()) throw new NullPointerException();
 	}
 	
