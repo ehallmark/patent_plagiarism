@@ -17,7 +17,7 @@ public class Main {
 	public static final int NUM_HASH_FUNCTIONS_ABSTRACT = 200;
 
 	public static final int LEN_SHINGLES_CLAIM = 6;
-	public static final int NUM_BANDS_CLAIM = 20;
+	public static final int NUM_BANDS_CLAIM = 5;
 	public static final int LEN_BANDS_CLAIM = 3;
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
 	
