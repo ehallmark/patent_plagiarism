@@ -26,6 +26,10 @@ public class PatentResult {
 			} break;
 		}
 	}
+	
+	public PatentResult(String name) {
+		this.name = name;
+	}
 
 	public String getSimilarity() {
 		if(similarity!=null) return "%" + similarity * 100 / num_functions;
