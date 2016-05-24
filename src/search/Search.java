@@ -76,7 +76,8 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			String text = req.queryParams("text");
 			if(text==null) return  template.add("<b>Please provide some text!</b>").toString();
-			else {text=text.toLowerCase().replaceAll("[^a-z]", "");}
+			else {text=Database.cleanWords(text);}
+			System.out.println(text);
 			
 			Integer limit = getLimit(req);
 			// set cookie

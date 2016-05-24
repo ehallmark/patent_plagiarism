@@ -45,6 +45,17 @@ public class Database {
 		ABSTRACT, DESCRIPTION, CLAIM
 	};
 	
+	public static String cleanWords(String unClean) throws SQLException {
+		PreparedStatement ps = mainConn.prepareStatement("SELECT words(?) AS words");
+		ps.setString(1,unClean);
+		ResultSet rs = ps.executeQuery();
+		if(rs.next()) {
+			return rs.getString(1);
+		} else {
+			return "";
+		}
+	}
+	
 	public static ResultSet claimMinHash() throws SQLException {
 		// Get the patent's hash values
 		String selectPatent;
