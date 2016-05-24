@@ -432,7 +432,6 @@ public class Database {
 
 	public static void insertCachedClaim(ResultSet results) throws SQLException {
 		StringJoiner columns = new StringJoiner(",", "(", ")");
-		
 		columns.add("pub_doc_number");
 		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
 			columns.add("m" + i);
@@ -449,6 +448,27 @@ public class Database {
 		}
 		insertPatent.add(patentVals.toString());
 		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
+		ps.executeUpdate();
+		ps.close();
+	}
+
+	public static void updateCachedClaim(ResultSet results) throws SQLException {
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			columns.add("m" + i);
+		}		
+		StringJoiner insertPatent = new StringJoiner(" ");
+		insertPatent.add("UPDATE patent_claim_cache_min_hash SET");
+		insertPatent.add(columns.toString());
+		insertPatent.add("=");
+		StringJoiner patentVals = new StringJoiner(",", "(", ")");
+		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			patentVals.add(String.valueOf(results.getInt(i+1)));
+		}
+		insertPatent.add(patentVals.toString());
+		insertPatent.add("WHERE pub_doc_number = ?");
+		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
+		ps.setString(1,results.getString(1));
 		ps.executeUpdate();
 		ps.close();
 	}

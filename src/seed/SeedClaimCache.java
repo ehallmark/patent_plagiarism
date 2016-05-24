@@ -33,7 +33,13 @@ public class SeedClaimCache {
 			try{
 				Database.insertCachedClaim(results);
 			} catch(SQLException sql) {
-				sql.printStackTrace();
+				// try to update
+				try {
+					Database.updateCachedClaim(results);
+				} catch(SQLException sql2) {
+					sql.printStackTrace();
+					sql2.printStackTrace();
+				}
 			}
 		}
 	}
