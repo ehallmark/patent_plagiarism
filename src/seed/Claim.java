@@ -15,7 +15,7 @@ public class Claim {
 		this.patentName = patentName;
 		this.claimNum = claimNum;
 		Claim.lastUid = lastUid;
-		values = NLP.createMinHash(claimText,SimilarityType.CLAIM);
+		values = NLP.createMinHash(claimText,SimilarityType.CLAIM, Main.LEN_SHINGLES);
 		if(claimNum==null || values.isEmpty()) throw new NullPointerException();
 	}
 	

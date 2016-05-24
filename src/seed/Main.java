@@ -6,19 +6,19 @@ import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
-	public static final int LEN_SHINGLES_DESCRIPTION = 9;
-	public static final int NUM_BANDS_DESCRIPTION = 40;
-	public static final int LEN_BANDS_DESCRIPTION = 3;
-	public static final int NUM_HASH_FUNCTIONS_DESCRIPTION = 300;
+	//public static final int LEN_SHINGLES_STRONG = 8;
+	public static final int LEN_SHINGLES = 6;
+	
+	public static final int NUM_BANDS_DESCRIPTION = 50;
+	public static final int LEN_BANDS_DESCRIPTION = 4;
+	public static final int NUM_HASH_FUNCTIONS_DESCRIPTION = 400;
 
-	public static final int LEN_SHINGLES_ABSTRACT = 7;
-	public static final int NUM_BANDS_ABSTRACT = 30;
-	public static final int LEN_BANDS_ABSTRACT = 3;
+	public static final int NUM_BANDS_ABSTRACT = 25;
+	public static final int LEN_BANDS_ABSTRACT = 4;
 	public static final int NUM_HASH_FUNCTIONS_ABSTRACT = 200;
 
-	public static final int LEN_SHINGLES_CLAIM = 6;
-	public static final int NUM_BANDS_CLAIM = 5;
-	public static final int LEN_BANDS_CLAIM = 3;
+	public static final int NUM_BANDS_CLAIM = 10;
+	public static final int LEN_BANDS_CLAIM = 4;
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
 	
 	private ArrayBlockingQueue<QueueSender> queue;

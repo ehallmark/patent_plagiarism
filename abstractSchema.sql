@@ -20,8 +20,8 @@ ALTER TABLE patent_abstract_min_hash ADD COLUMN pub_doc_number varchar(25) PRIMA
 
 DO language 'plpgsql'
 $$
-DECLARE patent_abstract_index text :=  string_agg('CREATE INDEX abs' || i::text || '_index ON patent_abstract_min_hash (m' || i::text || ',m' || (i+1)::text || ',m' || (i+2)::text|| ');', ' ') 
-    FROM generate_series(1,90,3) As i;
+DECLARE patent_abstract_index text :=  string_agg('CREATE INDEX abs' || i::text || '_index ON patent_abstract_min_hash (m' || i::text || ',m' || (i+1)::text || ',m' || (i+2)::text|| ',m'||(i+3)::text||');', ' ') 
+    FROM generate_series(1,100,4) As i;
 BEGIN
     EXECUTE patent_abstract_index; 
 END;

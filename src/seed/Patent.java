@@ -13,8 +13,8 @@ public class Patent {
 	// Constructor
 	public Patent(String inName, String inAbstract, String inDescription) throws SQLException {
 		name = inName;
-		abstractValues = NLP.createMinHash(inAbstract,SimilarityType.ABSTRACT);
-		descriptionValues = NLP.createMinHash(inDescription,SimilarityType.DESCRIPTION);
+		abstractValues = NLP.createMinHash(inAbstract,SimilarityType.ABSTRACT, Main.LEN_SHINGLES);
+		descriptionValues = NLP.createMinHash(inDescription,SimilarityType.DESCRIPTION, Main.LEN_SHINGLES);
 		if (abstractValues.isEmpty() && descriptionValues.isEmpty())
 			throw new NullPointerException();
 	}

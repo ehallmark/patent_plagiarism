@@ -26,8 +26,8 @@ CREATE UNIQUE INDEX pub_doc_number_claim_number_index on patent_claim_min_hash(p
 
 DO language 'plpgsql'
 $$
-DECLARE patent_claim_index text :=  string_agg('CREATE INDEX clm' || i::text || '_index ON patent_claim_min_hash (m' || i::text || ',m' || (i+1)::text || ',m' || (i+2)::text || ');', ' ') 
-    FROM generate_series(1,60,3) As i;
+DECLARE patent_claim_index text :=  string_agg('CREATE INDEX clm' || i::text || '_index ON patent_claim_min_hash (m' || i::text || ',m' || (i+1)::text || ',m' || (i+2)::text || ',m'||(i+3)::text || ');', ' ') 
+    FROM generate_series(1,40,4) As i;
 BEGIN
     EXECUTE patent_claim_index; 
 END;

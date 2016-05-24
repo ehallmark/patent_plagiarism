@@ -1,14 +1,6 @@
-CREATE OR REPLACE FUNCTION shingles(t text) 
-RETURNS int[] AS 
-$$ 
-   DECLARE sentences text[]:= string_to_array(t, '.'); curr text; j int:= 0; num int:= array_length(sentences,1); int[] r = ARRAY[]::int[];
-   BEGIN
-	LOOP
-	 EXIT WHEN j=num;
-	 	curr:= sentences[j];
-    	r:= r||ARRAY_AGG(DISTINCT hashtext(substring(curr FROM i FOR 6))::int) FROM generate_series(0,char_length(t)-6-1) i;
-     j:= j+1;
-    END LOOP;
-    return r;
+CREATE OR REPLACE FUNCTION words(t text) 
+RETURNS text AS 
+$$ BEGIN
+    RETURN ARRAY_TO_STRING(ARRAY_AGG(regexp_replace(coalesce(lower(temp.result),''), '[^a-z]', '', 'g')), '') FROM (SELECT * from UNNEST(STRING_TO_ARRAY(t,' ')) as result where char_length(regexp_replace(result, '[^a-z]', '', 'g')) > 2) as temp; 
    END
 $$ LANGUAGE plpgsql;

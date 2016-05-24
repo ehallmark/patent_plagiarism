@@ -10,6 +10,6 @@ CREATE TABLE last_min_hash_ingest(
 	table_name varchar(100)
 );
 
-INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (20130101,'patent_grant');
-INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (95000000,'patent_grant_claim');
+INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (20010101,'patent_grant');
+INSERT INTO last_min_hash_ingest(last_uid,table_name) VALUES (70000000,'patent_grant_claim');
 

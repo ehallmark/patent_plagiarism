@@ -21,22 +21,7 @@ public class NLP {
 		};		
 	}
 	
-	public static Set<Integer> createShingles(String result, SimilarityType type) {
-		Integer shingleLength;
-		switch(type) {
-			case ABSTRACT: {
-				shingleLength=Main.LEN_SHINGLES_ABSTRACT;
-			} break;
-			case DESCRIPTION: {
-				shingleLength=Main.LEN_SHINGLES_DESCRIPTION;
-			} break;
-			case CLAIM: {
-				shingleLength=Main.LEN_SHINGLES_CLAIM;
-			} break;
-			default: {
-				shingleLength = null;
-			} break;
-		};
+	private static Set<Integer> createShingles(String result, int shingleLength) {
 		Set<Integer> shingles = new HashSet<Integer>();
 		for(int i = 0; i < result.length()-shingleLength; i++) {
 			shingles.add(result.substring(i, i+shingleLength).hashCode());
@@ -44,7 +29,7 @@ public class NLP {
 		return shingles;
 	}
 	
-	public static List<Integer> createMinHash(String result, SimilarityType type) throws SQLException {
+	public static List<Integer> createMinHash(String result, SimilarityType type, int shingleLength) throws SQLException {
 		Integer numHashFunctions;
 		switch(type) {
 			case ABSTRACT: {
@@ -62,7 +47,7 @@ public class NLP {
 		};
 		
 		List<Integer> MinHashVector = new ArrayList<Integer>();
-		Set<Integer> shingles = createShingles(result, type);
+		Set<Integer> shingles = createShingles(result, shingleLength);
 		hashFunctions.subList(0, numHashFunctions).forEach(hash -> {
 			int min = Integer.MAX_VALUE;
 			for (int shingle : shingles) {

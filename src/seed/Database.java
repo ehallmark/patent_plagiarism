@@ -23,8 +23,8 @@ public class Database {
 	private static final String selectAlreadyIngested = " SELECT pub_doc_number from patent_abstract_min_hash ";
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
-	private static final String selectPatents = "SELECT pub_doc_number, replace(replace(replace(regexp_replace(lower(coalesce(abstract,'')), '[^a-z ]', '', 'g'),' ','<>'),'><',''),'<>',' ') as abstract, substring(replace(replace(replace(regexp_replace(lower(coalesce(description, '')), '[^a-z ]', '', 'g'),' ','<>'),'><',''),'<>',' ') from 0 for 100000)  as description FROM patent_grant where pub_date::int > ?";
-	private static final String selectClaims = "SELECT pub_doc_number, replace(replace(replace(regexp_replace(lower(coalesce(claim_text,'')), '[^a-z ]', '', 'g'),' ','<>'),'><',''),'<>',' ') as claims, uid FROM patent_grant_claim WHERE uid > ? order by uid limit 1000";
+	private static final String selectPatents = "SELECT pub_doc_number, words(abstract) as abstract, words(description) as description FROM patent_grant where pub_date::int > ?";
+	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claims, uid FROM patent_grant_claim WHERE uid > ? order by uid limit 1000";
 
 	
 	public static void setupMainConn() throws SQLException {
