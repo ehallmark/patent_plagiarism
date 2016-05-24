@@ -19,6 +19,7 @@ public class Database {
 
 	private static Connection seedConn;
 	private static Connection mainConn;
+	private static Connection cacheConn;
 
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
@@ -35,9 +36,28 @@ public class Database {
 		seedConn.setAutoCommit(false);
 	}
 	
+	public static void setupCacheConn() throws SQLException {
+		cacheConn = DriverManager.getConnection(outUrl);
+		cacheConn.setAutoCommit(false);
+	}
+	
 	public enum SimilarityType {
 		ABSTRACT, DESCRIPTION, CLAIM
 	};
+	
+	public static ResultSet claimMinHash() throws SQLException {
+		// Get the patent's hash values
+		String selectPatent;
+		StringJoiner select = new StringJoiner(",","SELECT pub_doc_number,"," FROM patent_claim_min_hash GROUP BY pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			select.add("MIN(m" + i + ")");
+		}
+		selectPatent = select.toString();
+		System.out.println(selectPatent);
+		PreparedStatement ps = cacheConn.prepareStatement(selectPatent);
+		ps.setFetchSize(5);
+		return ps.executeQuery();
+	}
 
 	public static void insertPatent(Patent p) throws SQLException {
 		// update abstract and description table separately
@@ -128,25 +148,31 @@ public class Database {
 
 	public static ArrayList<PatentResult> similarPatents(String patent,SimilarityType type,
 			int limit) throws SQLException {
+		String SQLSeedTable;
 		String SQLTable;
+
 		boolean isClaim = false;
 		Integer numBands;
 		Integer bandLength;
 		Integer numBandsForLSH;
 		switch(type) {
 			case ABSTRACT: {
+				SQLSeedTable = "patent_abstract_min_hash";
 				SQLTable = "patent_abstract_min_hash";
+
 				numBandsForLSH = Main.NUM_BANDS_ABSTRACT;
 				bandLength = Main.LEN_BANDS_ABSTRACT;
 				numBands = Main.NUM_HASH_FUNCTIONS_ABSTRACT/Main.LEN_BANDS_ABSTRACT;
 			} break;
 			case DESCRIPTION: {
+				SQLSeedTable = "patent_description_min_hash";
 				SQLTable = "patent_description_min_hash";
 				numBandsForLSH = Main.NUM_BANDS_DESCRIPTION;
 				bandLength = Main.LEN_BANDS_DESCRIPTION;
 				numBands = Main.NUM_HASH_FUNCTIONS_DESCRIPTION/Main.LEN_BANDS_DESCRIPTION;
 			} break;
 			case CLAIM: {
+				SQLSeedTable = "patent_claim_cache_min_hash";
 				SQLTable = "patent_claim_min_hash";
 				numBandsForLSH = Main.NUM_BANDS_CLAIM;
 				bandLength = Main.LEN_BANDS_CLAIM;
@@ -159,16 +185,8 @@ public class Database {
 		}
 		
 		// Get the patent's hash values
-		String selectPatent;
-		if(isClaim) {
-			StringJoiner select = new StringJoiner(",","SELECT "," FROM "+SQLTable+" WHERE pub_doc_number = ?");
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-				select.add("LEAST(m" + i + ")");
-			}
-			selectPatent = select.toString();
-		} else {
-			selectPatent = "SELECT * FROM "+SQLTable+" WHERE pub_doc_number = ?";
-		}
+		final String selectPatent = "SELECT * FROM "+SQLSeedTable+" WHERE pub_doc_number = ?";
+		
 		PreparedStatement ps = mainConn.prepareStatement(selectPatent);
 		ps.setString(1, patent);
 
@@ -205,7 +223,6 @@ public class Database {
 		PreparedStatement ps2 = mainConn.prepareStatement(similarSelect.toString());
 		ps2.setString(1, patent);
 		ps2.setInt(2, limit);
-
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
 		results = ps2.executeQuery();
 		if(!isClaim) {
@@ -217,6 +234,7 @@ public class Database {
 				patents.add(new ClaimResult(results.getString(1), results.getInt(2), type, results.getInt(3)));
 			}
 		}
+
 		return patents;
 
 	}
@@ -396,6 +414,29 @@ public class Database {
 			return rs.getInt(1);
 		}
 		return null;
+	}
+
+	public static void insertCachedClaim(ResultSet results) throws SQLException {
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+		
+		columns.add("pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			columns.add("m" + i);
+		}
+		
+		StringJoiner insertPatent = new StringJoiner(" ");
+		insertPatent.add("INSERT INTO patent_claim_cache_min_hash");
+		insertPatent.add(columns.toString());
+		insertPatent.add("VALUES");
+		StringJoiner patentVals = new StringJoiner(",", "(", ")");
+		patentVals.add("'" + results.getString(1) + "'");
+		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			patentVals.add(String.valueOf(results.getInt(i+1)));
+		}
+		insertPatent.add(patentVals.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
+		ps.executeUpdate();
+		ps.close();
 	}
 
 

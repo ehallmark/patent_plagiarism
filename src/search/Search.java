@@ -69,12 +69,10 @@ public class Search {
 			else {patent=patent.toUpperCase().trim().replaceAll("US","").replaceAll("[^0-9A-Z]", "");}
 						
 			SimilarityType type = getSimilarityType(req);
-			res.cookie("by", type.toString().toLowerCase());
-			PatentResult pr = new PatentResult(patent);
+			res.cookie("by", type.toString().toLowerCase()); 
+			PatentResult pr = new PatentResult(patent); 
 			String title = "<h4>Results for Patent "+pr.getUrl()+pr.getExternalUrl()+"</h4>";
-			
 			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit),type, req));
-			
 			return template.toString();
 		});
 		
