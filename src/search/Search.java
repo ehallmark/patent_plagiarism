@@ -15,10 +15,6 @@ import spark.Request;
 
 
 
-
-
-
-
 public class Search {	
 	private static final int DEFAULT_LIMIT = 10;
 	private static final String HTML =  "<h3>By Patent</h3>"
