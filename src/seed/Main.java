@@ -18,7 +18,7 @@ public class Main {
 	public static final int NUM_HASH_FUNCTIONS_ABSTRACT = 200;
 
 	public static final int NUM_BANDS_CLAIM = 10;
-	public static final int LEN_BANDS_CLAIM = 2;
+	public static final int LEN_BANDS_CLAIM = 4;
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
 	
 	private ArrayBlockingQueue<QueueSender> queue;
