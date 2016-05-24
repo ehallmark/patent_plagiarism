@@ -10,7 +10,6 @@ import java.util.StringJoiner;
 import seed.Claim;
 import seed.Database;
 import seed.Database.SimilarityType;
-import seed.Patent;
 import seed.PatentResult;
 import spark.Request;
 
@@ -87,7 +86,7 @@ public class Search {
 			res.cookie("by", type.toString().toLowerCase()); 
 			
 			// Create min hash for this text
-			Patent p;
+			Claim p;
 			try {
 				p = new Claim(text,type);
 			} catch (Exception e) {
@@ -95,7 +94,7 @@ public class Search {
 				return template.add("<b>Unable to perform search. Try providing more text!</b>").toString();
 			}
 			
-			template.add(resultsToHTML(Database.similarPatents(p.getAbstractValues(),type,limit),type, req));
+			template.add(resultsToHTML(Database.similarPatents(p.getValues(),type,limit),type, req));
 			return template.toString();
 		});
 	}

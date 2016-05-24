@@ -301,7 +301,10 @@ public class Database {
 		ps2.setInt(1, limit);
 
 		ArrayList<PatentResult> patents = new ArrayList<PatentResult>();
-		ResultSet results = ps2.executeQuery();
+		ResultSet results=null;
+		try{
+		 results = ps2.executeQuery();
+		} catch(Exception e) { e.printStackTrace(); }
 		if(!isClaim) {
 			while (results.next()) {
 				patents.add(new PatentResult(results.getString(1), results.getInt(2), type));
