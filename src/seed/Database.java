@@ -382,16 +382,6 @@ public class Database {
 			seedConn.close();
 	}
 
-	public static List<String> getAllPatentStrings() throws SQLException {
-		PreparedStatement pre = mainConn
-				.prepareStatement(selectAlreadyIngested);
-		List<String> values = new ArrayList<String>();
-		ResultSet res = pre.executeQuery();
-		while (res.next()) {
-			values.add(res.getString(1));
-		}
-		return values;
-	}
 
 	public static Integer claimCount() throws SQLException {
 		ResultSet rs = mainConn.prepareStatement("SELECT count(*) FROM patent_claim_min_hash").executeQuery(); 
