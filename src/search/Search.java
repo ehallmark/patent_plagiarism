@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.StringJoiner;
 
+import seed.Claim;
 import seed.Database;
 import seed.Database.SimilarityType;
 import seed.Patent;
@@ -82,18 +83,17 @@ public class Search {
 			// set cookie
 			res.cookie("limit", limit.toString());
 			
+			SimilarityType type = getSimilarityType(req);
+			res.cookie("by", type.toString().toLowerCase()); 
+			
 			// Create min hash for this text
 			Patent p;
 			try {
-				p = new Patent("",text,"");
+				p = new Claim(text,type);
 			} catch (Exception e) {
 				e.printStackTrace();
 				return template.add("<b>Unable to perform search. Try providing more text!</b>").toString();
 			}
-			
-			SimilarityType type = getSimilarityType(req);
-			// set cookie
-			res.cookie("by", type.toString().toLowerCase());
 			
 			template.add(resultsToHTML(Database.similarPatents(p.getAbstractValues(),type,limit),type, req));
 			return template.toString();

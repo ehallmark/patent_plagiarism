@@ -7,8 +7,8 @@ import seed.Database.SimilarityType;
 
 public class Patent {
 	private String name;
-	private List<Integer> abstractValues;
-	private List<Integer> descriptionValues;
+	protected List<Integer> abstractValues;
+	protected List<Integer> descriptionValues;
 
 	// Constructor
 	public Patent(String inName, String inAbstract, String inDescription) throws SQLException {
@@ -16,7 +16,11 @@ public class Patent {
 		abstractValues = NLP.createMinHash(inAbstract,SimilarityType.ABSTRACT, Main.LEN_SHINGLES);
 		descriptionValues = NLP.createMinHash(inDescription,SimilarityType.DESCRIPTION, Main.LEN_SHINGLES);
 		if (abstractValues.isEmpty() && descriptionValues.isEmpty())
-			throw new NullPointerException();
+			throw new NullPointerException("No Value Length");
+	}
+	
+	public Patent() {
+		
 	}
 
 	public List<Integer> getAbstractValues() {
