@@ -13,8 +13,8 @@ public class Main {
 	public static final int LEN_BANDS_DESCRIPTION = 4;
 	public static final int NUM_HASH_FUNCTIONS_DESCRIPTION = 400;
 
-	public static final int NUM_BANDS_ABSTRACT = 25;
-	public static final int LEN_BANDS_ABSTRACT = 2;
+	public static final int NUM_BANDS_ABSTRACT = 50;
+	public static final int LEN_BANDS_ABSTRACT = 4;
 	public static final int NUM_HASH_FUNCTIONS_ABSTRACT = 200;
 
 	public static final int NUM_BANDS_CLAIM = 10;
