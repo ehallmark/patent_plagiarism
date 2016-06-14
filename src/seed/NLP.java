@@ -1,11 +1,7 @@
 package seed;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import seed.Database.SimilarityType;
 
@@ -22,7 +18,7 @@ public class NLP {
 	}
 	
 	private static Set<Integer> createShingles(String result, int shingleLength) {
-		Set<Integer> shingles = new HashSet<Integer>();
+		Set<Integer> shingles = new HashSet();
 		for(int i = 0; i < result.length()-shingleLength; i++) {
 			shingles.add(result.substring(i, i+shingleLength).hashCode());
 		}
@@ -46,18 +42,14 @@ public class NLP {
 			} break;
 		};
 		
-		List<Integer> MinHashVector = new ArrayList<Integer>();
+		List<Integer> MinHashVector = new LinkedList<Integer>();
 		Set<Integer> shingles = createShingles(result, shingleLength);
 		hashFunctions.subList(0, numHashFunctions).forEach(hash -> {
-			int min = Integer.MAX_VALUE;
-			for (int shingle : shingles) {
-				int h = hash.getHashCode(shingle);
-				if (h < min) min = h;
-			};
-		// Get the minimum value
-			MinHashVector.add(min);
+			// Get the minimum value
+			MinHashVector.add(Collections.min(shingles));
 		});
-		System.gc();
 		return MinHashVector;
 	}
+
+
 }

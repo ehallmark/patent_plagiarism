@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 public class Database {
-	private static String inUrl = "jdbc:postgresql://data.gttgrp.com/patentdb?user=readonly&password=&tcpKeepAlive=true";
+	private static String inUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastPatentIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
 	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
@@ -24,11 +24,12 @@ public class Database {
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
 	private static final String selectPatents = "SELECT pub_doc_number, words(abstract) as abstract, words(description) as description FROM patent_grant where pub_date::int > ?";
-	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claims, number, uid FROM patent_grant_claim WHERE uid > ? order by uid limit 1000";
+	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claims, number, uid FROM patent_grant_claim WHERE uid > ? order by uid limit ?";
 
 	
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
+		mainConn.setAutoCommit(false);
 	}
 
 	public static void setupSeedConn() throws SQLException {
@@ -39,6 +40,10 @@ public class Database {
 	public static void setupCacheConn() throws SQLException {
 		cacheConn = DriverManager.getConnection(outUrl);
 		cacheConn.setAutoCommit(false);
+	}
+
+	public static void safeCommit() throws SQLException {
+		mainConn.commit();
 	}
 	
 	public enum SimilarityType {
@@ -149,7 +154,6 @@ public class Database {
 			insert.add(vals.toString());
 			PreparedStatement ps = mainConn.prepareStatement(insert.toString());
 			ps.executeUpdate();
-			ps.close();
 			System.out.println(claim.getPatentName()+" claim "+claim.getClaimNum());
 
 		}
@@ -329,10 +333,14 @@ public class Database {
 	}
 
 	// We need the seed connection
-	public static ResultSet selectPatents() throws SQLException, IOException {
+	public static ResultSet selectPatents(int limit) throws SQLException, IOException {
 		PreparedStatement ps = mainConn.prepareStatement(selectLastPatentIngestDate);
 		ResultSet res = ps.executeQuery();
-		PreparedStatement ps2 = seedConn.prepareStatement(selectPatents);
+		String select = selectPatents;
+		if(limit > 0) {
+			select += " LIMIT "+limit;
+		}
+		PreparedStatement ps2 = seedConn.prepareStatement(select);
 		if(res.next()) {
 			ps2.setInt(1, res.getInt(1));
 		} else {
@@ -341,11 +349,13 @@ public class Database {
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
 
+
+
 		ResultSet results = ps2.executeQuery();
 		return results;
 	}
 	
-	public static ResultSet selectClaims() throws SQLException, IOException {
+	public static ResultSet selectClaims(int limit) throws SQLException, IOException {
 		PreparedStatement ps = mainConn.prepareStatement(selectLastClaimIngestDate);
 		ResultSet res = ps.executeQuery();
 		PreparedStatement ps2 = seedConn.prepareStatement(selectClaims);
@@ -354,6 +364,10 @@ public class Database {
 		} else {
 			ps2.setInt(1, 0);
 		}
+
+		if(limit > 0) ps2.setInt(2, limit);
+		else ps2.setInt(2, 1000);
+
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
 
@@ -361,13 +375,6 @@ public class Database {
 		return results;
 	}
 
-	public static void setAutoCommit(boolean commit) throws SQLException {
-		mainConn.setAutoCommit(commit);
-	}
-
-	public static void commit() throws SQLException {
-		mainConn.commit();
-	}
 	
 	public static void updateLastPatentDate() throws SQLException {
 		PreparedStatement ps;

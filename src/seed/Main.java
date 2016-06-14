@@ -28,6 +28,10 @@ public class Main {
 	public static final int SEED_CLAIMS = 2;
 
 	Main(int seedType) throws IOException, SQLException {
+		this(seedType, -1);
+	}
+
+	Main(int seedType, int limit) throws IOException, SQLException {
 		if(seedType<=0||seedType>2) {
 			System.out.println("Please specify a seed type!");
 			return;
@@ -44,6 +48,7 @@ public class Main {
 			@Override
 			public void run() {
 				QueueSender res = null;
+				int timeToCommit = 0;
 				try {
 					if(seedType==Main.SEED_PATENTS)  {
 						while (!kill) {
@@ -53,12 +58,18 @@ public class Main {
 							}
 							try {
 								Database.insertPatent(new Patent(res.arg1, res.arg2, res.arg3));
+								timeToCommit++;
+								if(timeToCommit > 1000) {
+									Database.safeCommit();
+									timeToCommit=0;
+								}
+
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 								continue;
 							}
-							System.gc();
+
 						}
 					}  else if(seedType==Main.SEED_CLAIMS) {
 						while (!kill) {
@@ -68,15 +79,21 @@ public class Main {
 							}
 							try {
 								Database.insertClaim(new Claim(res.arg1, res.arg2, res.int1, res.int2));
-	
+								timeToCommit++;
+								if(timeToCommit > 1000) {
+									Database.safeCommit();
+									timeToCommit=0;
+								}
+
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 								continue;
 							}
-						}
-					}
 
+						}
+
+					}
 
 
 				} catch (InterruptedException e) {
@@ -87,8 +104,8 @@ public class Main {
 		};
 		thr.start();
 		ResultSet results;
-		if(seedType==SEED_CLAIMS) results = Database.selectClaims();
-		else if(seedType==SEED_PATENTS) results = Database.selectPatents();
+		if(seedType==SEED_CLAIMS) results = Database.selectClaims(limit);
+		else if(seedType==SEED_PATENTS) results = Database.selectPatents(limit);
 		else return;
 		try {
 			while (results.next()) {
@@ -128,6 +145,7 @@ public class Main {
 		}
 		try {
 			thr.join();
+			Database.close();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
