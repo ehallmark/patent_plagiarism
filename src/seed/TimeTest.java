@@ -17,17 +17,19 @@ public class TimeTest {
             }
             Database.setupSeedConn();
             Database.setupMainConn();
-            for(int i = 0; i < 1000000; i++) {
-                new Main(Main.SEED_CLAIMS, 1000000);
-            }
-            new Main(Main.SEED_PATENTS, 80000);
+            new Main(Main.SEED_CLAIMS, 100000);
+
+
+            Database.setupSeedConn();
+            Database.setupMainConn();
+            new Main(Main.SEED_PATENTS, 8000);
             long finalTime = System.currentTimeMillis();
 
             long deltaTime = finalTime - initialTime;
 
             double numDays = ((double)deltaTime)/(1000 * 60 * 60 * 24);
             System.out.println("Test took "+numDays+" days to complete...");
-            System.out.println("Would take approximately "+(numDays*100)+" days to complete seed...");
+            System.out.println("Would take approximately "+(numDays*1000)+" days to complete seed...");
 
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -35,8 +37,6 @@ public class TimeTest {
         } catch (SQLException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-        } finally {
-            try { Database.close(); } catch(Exception e) {e.printStackTrace();}
         }
     }
 }

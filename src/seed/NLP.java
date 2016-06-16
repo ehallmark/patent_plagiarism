@@ -1,9 +1,10 @@
 package seed;
 
+import seed.Database.SimilarityType;
+
 import java.sql.SQLException;
 import java.util.*;
-
-import seed.Database.SimilarityType;
+import java.util.stream.IntStream;
 
 
 
@@ -24,7 +25,8 @@ public class NLP {
 		}
 		return shingles;
 	}
-	
+
+	// Never returns null
 	public static List<Integer> createMinHash(String result, SimilarityType type, int shingleLength) throws SQLException {
 		Integer numHashFunctions;
 		switch(type) {
@@ -41,14 +43,21 @@ public class NLP {
 				numHashFunctions = null;
 			} break;
 		};
-		
-		List<Integer> MinHashVector = new LinkedList<Integer>();
-		Set<Integer> shingles = createShingles(result, shingleLength);
-		hashFunctions.subList(0, numHashFunctions).forEach(hash -> {
-			// Get the minimum value
-			MinHashVector.add(Collections.min(shingles));
+		Integer[] mins = new Integer[numHashFunctions];
+		for(int i = 0; i < numHashFunctions; i++) {
+			mins[i] = Integer.MAX_VALUE;
+		}
+
+		createShingles(result, shingleLength).forEach(shingle->{
+			int i = 0;
+			for(HashFunction hash : hashFunctions.subList(0, numHashFunctions)) {
+				// Get the minimum value
+				if(mins[i] > hash.getHashCode(shingle)) mins[i] = hash.getHashCode(shingle);
+				i++;
+			}
 		});
-		return MinHashVector;
+
+		return Arrays.asList(mins);
 	}
 
 

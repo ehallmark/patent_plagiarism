@@ -1,17 +1,17 @@
 package search;
 
-import static spark.Spark.get;
-import static spark.Spark.post;
-
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.StringJoiner;
-
 import seed.Claim;
 import seed.Database;
 import seed.Database.SimilarityType;
 import seed.PatentResult;
 import spark.Request;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.StringJoiner;
+
+import static spark.Spark.get;
+import static spark.Spark.post;
 
 
 

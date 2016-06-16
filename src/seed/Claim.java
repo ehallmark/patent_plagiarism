@@ -1,9 +1,9 @@
 package seed;
 
+import seed.Database.SimilarityType;
+
 import java.sql.SQLException;
 import java.util.List;
-
-import seed.Database.SimilarityType;
 
 public class Claim {
 	public static Integer lastUid;

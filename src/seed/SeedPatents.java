@@ -20,8 +20,6 @@ public class SeedPatents {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally {
-			try { Database.close(); } catch(Exception e) {e.printStackTrace();}
 		}
 	}
 }

@@ -1,11 +1,7 @@
 package seed;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -125,8 +121,7 @@ public class Database {
 			ps.executeUpdate();
 			ps.close();
 		}
-		System.out.println(p.getName());
-		
+
 	}
 	
 	public static void insertClaim(Claim claim) throws SQLException {
@@ -154,7 +149,6 @@ public class Database {
 			insert.add(vals.toString());
 			PreparedStatement ps = mainConn.prepareStatement(insert.toString());
 			ps.executeUpdate();
-			System.out.println(claim.getPatentName()+" claim "+claim.getClaimNum());
 
 		}
 		
@@ -349,10 +343,8 @@ public class Database {
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
 
-
-
-		ResultSet results = ps2.executeQuery();
-		return results;
+		ps.close();
+		return ps2.executeQuery();
 	}
 	
 	public static ResultSet selectClaims(int limit) throws SQLException, IOException {
@@ -371,8 +363,9 @@ public class Database {
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
 
-		ResultSet results = ps2.executeQuery();
-		return results;
+		ps.close();
+
+		return ps2.executeQuery();
 	}
 
 	

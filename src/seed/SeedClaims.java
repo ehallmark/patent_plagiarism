@@ -16,7 +16,10 @@ public class SeedClaims {
 			Database.setupMainConn();
 			stoppingPoint = Database.lastIngestableClaimUid();
 			System.out.println("Last UID Avaiable: "+stoppingPoint);
+			Database.close();
 			while(Claim.lastUid==null || stoppingPoint > Claim.lastUid) {
+				Database.setupSeedConn();
+				Database.setupMainConn();
 				new Main(Main.SEED_CLAIMS);
 			}
 		} catch (IOException e) {
@@ -25,8 +28,6 @@ public class SeedClaims {
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} finally {
-			try { Database.close(); } catch(Exception e) {e.printStackTrace();}
 		}
 	}
 }

@@ -47,8 +47,10 @@ public class Main {
 		Thread thr = new Thread() {
 			@Override
 			public void run() {
+				try{Thread.sleep(1000);}catch(InterruptedException ie) {ie.printStackTrace();}
 				QueueSender res = null;
 				int timeToCommit = 0;
+				long timeInit = System.currentTimeMillis();
 				try {
 					if(seedType==Main.SEED_PATENTS)  {
 						while (!kill) {
@@ -61,7 +63,10 @@ public class Main {
 								timeToCommit++;
 								if(timeToCommit > 1000) {
 									Database.safeCommit();
+									System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+									timeInit = System.currentTimeMillis();
 									timeToCommit=0;
+									System.gc(); System.gc();
 								}
 
 							} catch (Exception e) {
@@ -80,9 +85,13 @@ public class Main {
 							try {
 								Database.insertClaim(new Claim(res.arg1, res.arg2, res.int1, res.int2));
 								timeToCommit++;
-								if(timeToCommit > 1000) {
+								if(timeToCommit > 10000) {
 									Database.safeCommit();
+									System.out.println("Finished 10000 Claims in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+									timeInit = System.currentTimeMillis();
 									timeToCommit=0;
+									System.gc(); System.gc();
+
 								}
 
 							} catch (Exception e) {
@@ -109,7 +118,8 @@ public class Main {
 		else return;
 		try {
 			while (results.next()) {
-				try { 
+				try {
+
 					QueueSender r;
 					if(seedType==SEED_CLAIMS) r = new QueueSender(results.getString(1),results.getString(2), results.getInt(3), results.getInt(4));
 					else if(seedType==SEED_PATENTS) r = new QueueSender(results.getString(1),results.getString(2), results.getString(3));
@@ -117,7 +127,6 @@ public class Main {
 					while (!queue.offer(r)) {
 						// Queue is full
 						try {
-							System.out.println("Offer rejected");
 							// sleep awhile to let other thread compute
 							while (queue.size() > 200)
 								Thread.sleep(500);
@@ -145,7 +154,6 @@ public class Main {
 		}
 		try {
 			thr.join();
-			Database.close();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -158,6 +166,8 @@ public class Main {
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} finally {
+				Database.close();
 			}
 		}
 
