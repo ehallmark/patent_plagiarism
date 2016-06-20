@@ -156,7 +156,7 @@ public class Database {
 		insertPatent.add("VALUES");
 		StringJoiner patentVals = new StringJoiner(",", "(", ")");
 		patentVals.add("'" + name + "'");
-		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+		for(int i = 0; i < Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
 			patentVals.add(String.valueOf(minHash[i]));
 		}
 		insertPatent.add(patentVals.toString());
