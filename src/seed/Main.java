@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
-	//public static final int LEN_SHINGLES_STRONG = 8;
 	public static final int LEN_SHINGLES = 6;
 	
 	public static final int NUM_BANDS_DESCRIPTION = 20;
@@ -24,18 +23,12 @@ public class Main {
 	private ArrayBlockingQueue<QueueSender> queue;
 	private boolean kill = false;
 	public static int FETCH_SIZE = 5;
-	public static final int SEED_PATENTS = 1;
-	public static final int SEED_CLAIMS = 2;
 
-	Main(int seedType) throws IOException, SQLException {
-		this(seedType, -1);
+	Main() throws IOException, SQLException {
+		this(-1);
 	}
 
-	Main(int seedType, int limit) throws IOException, SQLException {
-		if(seedType<=0||seedType>2) {
-			System.out.println("Please specify a seed type!");
-			return;
-		}
+	Main(int limit) throws IOException, SQLException {
 		try {
 			Class.forName("org.postgresql.Driver");
 		} catch (ClassNotFoundException e1) {
@@ -52,54 +45,26 @@ public class Main {
 				int timeToCommit = 0;
 				long timeInit = System.currentTimeMillis();
 				try {
-					if(seedType==Main.SEED_PATENTS)  {
-						while (!kill) {
-							if ((res = queue.poll()) == null) {
-								Thread.sleep(50);
-								continue;
-							}
-							try {
-								Database.insertPatent(new Patent(res.arg1, res.arg2, res.arg3));
-								timeToCommit++;
-								if(timeToCommit > 1000) {
-									Database.safeCommit();
-									System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
-									timeInit = System.currentTimeMillis();
-									timeToCommit=0;
-									System.gc(); System.gc();
-								}
-
-							} catch (Exception e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-								continue;
-							}
-
+					while (!kill) {
+						if ((res = queue.poll()) == null) {
+							Thread.sleep(50);
+							continue;
 						}
-					}  else if(seedType==Main.SEED_CLAIMS) {
-						while (!kill) {
-							if ((res = queue.poll()) == null) {
-								Thread.sleep(50);
-								continue;
-							}
-							try {
-								Database.insertClaim(new Claim(res.arg1, res.arg2, res.int1, res.int2));
-								timeToCommit++;
-								if(timeToCommit > 10000) {
-									Database.safeCommit();
-									System.out.println("Finished 10000 Claims in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
-									timeInit = System.currentTimeMillis();
-									timeToCommit=0;
-									System.gc(); System.gc();
-
-								}
-
-							} catch (Exception e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-								continue;
+						try {
+							new Patent(res);
+							timeToCommit++;
+							if(timeToCommit > 1000) {
+								Database.safeCommit();
+								System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+								timeInit = System.currentTimeMillis();
+								timeToCommit=0;
+								System.gc(); System.gc();
 							}
 
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+							continue;
 						}
 
 					}
@@ -112,19 +77,11 @@ public class Main {
 
 		};
 		thr.start();
-		ResultSet results;
-		if(seedType==SEED_CLAIMS) results = Database.selectClaims(limit);
-		else if(seedType==SEED_PATENTS) results = Database.selectPatents(limit);
-		else return;
+		ResultSet results = Database.selectPatents(limit);
 		try {
 			while (results.next()) {
 				try {
-
-					QueueSender r;
-					if(seedType==SEED_CLAIMS) r = new QueueSender(results.getString(1),results.getString(2), results.getInt(3), results.getInt(4));
-					else if(seedType==SEED_PATENTS) r = new QueueSender(results.getString(1),results.getString(2), results.getString(3));
-					else break;
-					while (!queue.offer(r)) {
+					while (!queue.offer(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4)))) {
 						// Queue is full
 						try {
 							// sleep awhile to let other thread compute
@@ -160,9 +117,8 @@ public class Main {
 		} finally {
 			try {
 				
-				if(seedType==SEED_PATENTS)Database.updateLastPatentDate();
-				else if(seedType==SEED_CLAIMS && Claim.lastUid!=null)Database.updateLastClaimDate();
-				
+				Database.updateLastPatentDate();
+
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

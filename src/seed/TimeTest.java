@@ -17,12 +17,8 @@ public class TimeTest {
             }
             Database.setupSeedConn();
             Database.setupMainConn();
-            new Main(Main.SEED_CLAIMS, 100000);
 
-
-            Database.setupSeedConn();
-            Database.setupMainConn();
-            new Main(Main.SEED_PATENTS, 8000);
+            new Main(8000);
             long finalTime = System.currentTimeMillis();
 
             long deltaTime = finalTime - initialTime;

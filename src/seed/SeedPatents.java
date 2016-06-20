@@ -13,7 +13,7 @@ public class SeedPatents {
 				}
 			Database.setupSeedConn();
 			Database.setupMainConn();
-			new Main(Main.SEED_PATENTS);
+			new Main();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

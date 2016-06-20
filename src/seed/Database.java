@@ -11,16 +11,12 @@ public class Database {
 	private static String inUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
 	private static final String lastPatentIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant'";
-	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
 
 	private static Connection seedConn;
 	private static Connection mainConn;
-	private static Connection cacheConn;
-
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
-	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
-	private static final String selectPatents = "SELECT pub_doc_number, words(abstract) as abstract, words(description) as description FROM patent_grant where pub_date::int > ?";
-	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claims, number, uid FROM patent_grant_claim WHERE uid > ? order by uid limit ?";
+	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date >= ? ORDER BY pub_date";
+	private static final String selectClaims = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ?";
 
 	
 	public static void setupMainConn() throws SQLException {
@@ -32,11 +28,6 @@ public class Database {
 		seedConn = DriverManager.getConnection(inUrl);
 		seedConn.setAutoCommit(false);
 	}
-	
-	public static void setupCacheConn() throws SQLException {
-		cacheConn = DriverManager.getConnection(outUrl);
-		cacheConn.setAutoCommit(false);
-	}
 
 	public static void safeCommit() throws SQLException {
 		mainConn.commit();
@@ -44,7 +35,27 @@ public class Database {
 	
 	public enum SimilarityType {
 		ABSTRACT, DESCRIPTION, CLAIM
-	};
+	}
+
+	public static ResultSet selectPatents(int limit)throws SQLException {
+		PreparedStatement ps = mainConn.prepareStatement(selectLastPatentIngestDate);
+		ResultSet res = ps.executeQuery();
+		String select = selectPatents;
+		if(limit > 0) {
+			select += " LIMIT "+limit;
+		}
+		PreparedStatement ps2 = seedConn.prepareStatement(select);
+		if(res.next()) {
+			ps2.setInt(1, res.getInt(1));
+		} else {
+			ps2.setInt(1, 20010000);
+		}
+		ps2.setFetchSize(Main.FETCH_SIZE);
+		System.out.println(ps2);
+
+		ps.close();
+		return ps2.executeQuery();
+	}
 	
 	public static String cleanWords(String unClean) throws SQLException {
 		PreparedStatement ps = mainConn.prepareStatement("SELECT words(?) AS words");
@@ -56,104 +67,103 @@ public class Database {
 			return "";
 		}
 	}
-	
-	public static ResultSet claimMinHash() throws SQLException {
-		// Get the patent's hash values
-		String selectPatent;
-		StringJoiner select = new StringJoiner(",","SELECT pub_doc_number,"," FROM patent_claim_min_hash GROUP BY pub_doc_number");
+
+
+	public static void updateAbstractMinHash(List<Integer> minHash, String name) throws SQLException {
+		// Add patent values as array
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+
+		columns.add("pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_ABSTRACT; i++) {
+			columns.add("m" + i);
+		}
+
+		StringJoiner insertAbstract = new StringJoiner(" ");
+
+		insertAbstract.add("INSERT INTO patent_abstract_min_hash");
+		insertAbstract.add(columns.toString());
+		insertAbstract.add("VALUES");
+		StringJoiner abstractVals = new StringJoiner(",", "(", ")");
+		abstractVals.add("'" + name + "'");
+		minHash.forEach(val -> {
+			abstractVals.add(val.toString());
+		});
+		insertAbstract.add(abstractVals.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insertAbstract.toString());
+		ps.executeUpdate();
+		ps.close();
+	}
+
+	public static void updateDescriptionMinHash(List<Integer> minHash, String name) throws SQLException {
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+
+		columns.add("pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_DESCRIPTION; i++) {
+			columns.add("m" + i);
+		}
+
+		StringJoiner insertDescription = new StringJoiner(" ");
+		insertDescription.add("INSERT INTO patent_description_min_hash");
+		insertDescription.add(columns.toString());
+		insertDescription.add("VALUES");
+		StringJoiner descriptionVals = new StringJoiner(",", "(", ")");
+		descriptionVals.add("'" + name + "'");
+		minHash.forEach(val -> {
+			descriptionVals.add(val.toString());
+		});
+		insertDescription.add(descriptionVals.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insertDescription.toString());
+		ps.executeUpdate();
+		ps.close();
+
+	}
+
+	public static void updateClaimMinHash(List<Integer> minHash, String name, Integer num) throws SQLException {
+		StringJoiner insert = new StringJoiner(" ");
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+
+		columns.add("pub_doc_number");
+		columns.add("claim_number");
 		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-			select.add("MIN(m" + i + ")");
+			columns.add("m" + i);
 		}
-		selectPatent = select.toString();
-		System.out.println(selectPatent);
-		PreparedStatement ps = cacheConn.prepareStatement(selectPatent);
-		ps.setFetchSize(5);
-		return ps.executeQuery();
-	}
-
-	public static void insertPatent(Patent p) throws SQLException {
 		// update abstract and description table separately
-		
-		// Add patent values as array
-		if(p.getAbstractValues()!=null&&!p.getAbstractValues().isEmpty()) {
-			StringJoiner columns = new StringJoiner(",", "(", ")");
-			
-			columns.add("pub_doc_number");
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_ABSTRACT; i++) {
-				columns.add("m" + i);
-			}
-			
-			StringJoiner insertAbstract = new StringJoiner(" ");
 
-			insertAbstract.add("INSERT INTO patent_abstract_min_hash");
-			insertAbstract.add(columns.toString());
-			insertAbstract.add("VALUES");
-			StringJoiner abstractVals = new StringJoiner(",", "(", ")");
-			abstractVals.add("'" + p.getName() + "'");
-			p.getAbstractValues().forEach(val -> {
-				abstractVals.add(val.toString());
-			});
-			insertAbstract.add(abstractVals.toString());
-			PreparedStatement ps = mainConn.prepareStatement(insertAbstract.toString());
-			ps.executeUpdate();
-			ps.close();
-		}
-			
-		if(p.getDescriptionValues()!=null&&!p.getDescriptionValues().isEmpty()) {
-			StringJoiner columns = new StringJoiner(",", "(", ")");
-			
-			columns.add("pub_doc_number");
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_DESCRIPTION; i++) {
-				columns.add("m" + i);
-			}
-			
-			StringJoiner insertDescription = new StringJoiner(" ");
-			insertDescription.add("INSERT INTO patent_description_min_hash");
-			insertDescription.add(columns.toString());
-			insertDescription.add("VALUES");
-			StringJoiner descriptionVals = new StringJoiner(",", "(", ")");
-			descriptionVals.add("'" + p.getName() + "'");
-			p.getDescriptionValues().forEach(val -> {
-				descriptionVals.add(val.toString());
-			});
-			insertDescription.add(descriptionVals.toString());
-			PreparedStatement ps = mainConn.prepareStatement(insertDescription.toString());
-			ps.executeUpdate();
-			ps.close();
-		}
-
-	}
-	
-	public static void insertClaim(Claim claim) throws SQLException {
-		// Add patent values as array
-		if(claim.getValues()!=null&&!claim.getValues().isEmpty()&&claim.getClaimNum()!=null) {
-			StringJoiner insert = new StringJoiner(" ");
-			StringJoiner columns = new StringJoiner(",", "(", ")");
-			
-			columns.add("pub_doc_number");
-			columns.add("claim_number");
-			for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-				columns.add("m" + i);
-			}
-			// update abstract and description table separately
-
-			insert.add("INSERT INTO patent_claim_min_hash");
-			insert.add(columns.toString());
-			insert.add("VALUES");
-			StringJoiner vals = new StringJoiner(",", "(", ")");
-			vals.add("'" + claim.getPatentName() + "'");
-			vals.add(claim.getClaimNum().toString());
-			claim.getValues().forEach(val -> {
-				vals.add(val.toString());
-			});
-			insert.add(vals.toString());
-			PreparedStatement ps = mainConn.prepareStatement(insert.toString());
-			ps.executeUpdate();
-
-		}
-		
+		insert.add("INSERT INTO patent_claim_min_hash");
+		insert.add(columns.toString());
+		insert.add("VALUES");
+		StringJoiner vals = new StringJoiner(",", "(", ")");
+		vals.add("'" + name + "'");
+		vals.add(num.toString());
+		minHash.forEach(val -> {
+			vals.add(val.toString());
+		});
+		insert.add(vals.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insert.toString());
+		ps.executeUpdate();
 	}
 
+	public static void updateCachedClaimMinHash(Integer[] minHash, String name) throws SQLException {
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+		columns.add("pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			columns.add("m" + i);
+		}
+
+		StringJoiner insertPatent = new StringJoiner(" ");
+		insertPatent.add("INSERT INTO patent_claim_cache_min_hash");
+		insertPatent.add(columns.toString());
+		insertPatent.add("VALUES");
+		StringJoiner patentVals = new StringJoiner(",", "(", ")");
+		patentVals.add("'" + name + "'");
+		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			patentVals.add(String.valueOf(minHash[i]));
+		}
+		insertPatent.add(patentVals.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
+		ps.executeUpdate();
+		ps.close();
+	}
 
 	public static ArrayList<PatentResult> similarPatents(String patent,SimilarityType type,
 			int limit) throws SQLException {
@@ -326,82 +336,29 @@ public class Database {
 		return patents;
 	}
 
-	// We need the seed connection
-	public static ResultSet selectPatents(int limit) throws SQLException, IOException {
-		PreparedStatement ps = mainConn.prepareStatement(selectLastPatentIngestDate);
-		ResultSet res = ps.executeQuery();
-		String select = selectPatents;
-		if(limit > 0) {
-			select += " LIMIT "+limit;
-		}
-		PreparedStatement ps2 = seedConn.prepareStatement(select);
-		if(res.next()) {
-			ps2.setInt(1, res.getInt(1));
-		} else {
-			ps2.setInt(1, 0);
-		}
-		ps2.setFetchSize(Main.FETCH_SIZE);
-		System.out.println(ps2);
-
-		ps.close();
-		return ps2.executeQuery();
-	}
 	
-	public static ResultSet selectClaims(int limit) throws SQLException, IOException {
-		PreparedStatement ps = mainConn.prepareStatement(selectLastClaimIngestDate);
-		ResultSet res = ps.executeQuery();
-		PreparedStatement ps2 = seedConn.prepareStatement(selectClaims);
-		if(res.next()) {
-			ps2.setInt(1, res.getInt(1));
-		} else {
-			ps2.setInt(1, 0);
-		}
+	public static ResultSet selectClaims(String patent) throws SQLException {
+		PreparedStatement ps = seedConn.prepareStatement(selectClaims);
+		ps.setString(1, patent);
 
-		if(limit > 0) ps2.setInt(2, limit);
-		else ps2.setInt(2, 1000);
+		//ps.setFetchSize(Main.FETCH_SIZE);
+		//System.out.println(ps);
 
-		ps2.setFetchSize(Main.FETCH_SIZE);
-		System.out.println(ps2);
-
-		ps.close();
-
-		return ps2.executeQuery();
+		return ps.executeQuery();
 	}
 
 	
 	public static void updateLastPatentDate() throws SQLException {
-		PreparedStatement ps;
-		// update last date
-		LocalDateTime date = LocalDateTime.now();
-		int lastDate = date.getYear()*10000+date.getMonthValue()*100+date.getDayOfMonth();
-		ps = mainConn.prepareStatement(lastPatentIngest);
-		ps.setInt(1, lastDate);
-		ps.executeUpdate();
-		ps.close();
-	}
-	
-	public static void updateLastClaimDate() throws SQLException {
-		// update last ingest
-		if(Claim.lastUid!=null) {
+		if(Patent.lastPubDate!=null) {
 			PreparedStatement ps;
 			// get the last UID and then add it to the last ingest table
-			ps = mainConn.prepareStatement(lastClaimIngest);
-			ps.setInt(1, Claim.lastUid);
+			ps = mainConn.prepareStatement(lastPatentIngest);
+			ps.setInt(1, Patent.lastPubDate);
 			ps.executeUpdate();
 			ps.close();
 		}
-		
 	}
-	
-	public static Integer lastIngestableClaimUid() throws SQLException {
-		PreparedStatement ps = seedConn.prepareStatement("SELECT uid FROM patent_grant_claim ORDER BY uid DESC LIMIT 1");
-		ResultSet rs = ps.executeQuery();
-		if(rs.next()) {
-			return rs.getInt(1);
-		} else {
-			return null;
-		}
-	}
+
 
 	public static void close() throws SQLException {
 		if (mainConn != null) {
@@ -414,64 +371,6 @@ public class Database {
 			seedConn.close();
 	}
 
-
-	public static Integer claimCount() throws SQLException {
-		ResultSet rs = mainConn.prepareStatement("SELECT count(*) FROM patent_claim_min_hash").executeQuery(); 
-		if(rs.next()) {
-			return rs.getInt(1);
-		}
-		return null;	}
-
-	public static Integer patentCount() throws SQLException {
-		ResultSet rs = mainConn.prepareStatement("SELECT count(*) FROM patent_abstract_min_hash").executeQuery(); 
-		if(rs.next()) {
-			return rs.getInt(1);
-		}
-		return null;
-	}
-
-	public static void insertCachedClaim(ResultSet results) throws SQLException {
-		StringJoiner columns = new StringJoiner(",", "(", ")");
-		columns.add("pub_doc_number");
-		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-			columns.add("m" + i);
-		}
-		
-		StringJoiner insertPatent = new StringJoiner(" ");
-		insertPatent.add("INSERT INTO patent_claim_cache_min_hash");
-		insertPatent.add(columns.toString());
-		insertPatent.add("VALUES");
-		StringJoiner patentVals = new StringJoiner(",", "(", ")");
-		patentVals.add("'" + results.getString(1) + "'");
-		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-			patentVals.add(String.valueOf(results.getInt(i+1)));
-		}
-		insertPatent.add(patentVals.toString());
-		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
-		ps.executeUpdate();
-		ps.close();
-	}
-
-	public static void updateCachedClaim(ResultSet results) throws SQLException {
-		StringJoiner columns = new StringJoiner(",", "(", ")");
-		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-			columns.add("m" + i);
-		}		
-		StringJoiner insertPatent = new StringJoiner(" ");
-		insertPatent.add("UPDATE patent_claim_cache_min_hash SET");
-		insertPatent.add(columns.toString());
-		insertPatent.add("=");
-		StringJoiner patentVals = new StringJoiner(",", "(", ")");
-		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
-			patentVals.add(String.valueOf(results.getInt(i+1)));
-		}
-		insertPatent.add(patentVals.toString());
-		insertPatent.add("WHERE pub_doc_number = ?");
-		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
-		ps.setString(1,results.getString(1));
-		ps.executeUpdate();
-		ps.close();
-	}
 
 
 }
