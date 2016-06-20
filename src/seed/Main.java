@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
+//import java.util.concurrent.*;
 
 public class Main {
 	public static final int LEN_SHINGLES = 6;
@@ -23,6 +24,7 @@ public class Main {
 	private ArrayBlockingQueue<QueueSender> queue;
 	private boolean kill = false;
 	public static int FETCH_SIZE = 5;
+	//private ForkJoinPool fork = new ForkJoinPool();
 
 	Main() throws IOException, SQLException {
 		this(-1);
