@@ -27,6 +27,7 @@ public class Patent {
 						for(int i = 0; i < claims.length; i++) {
 							try {
 								List<Integer> curr = NLP.createMinHash(claims[i], SimilarityType.CLAIM, Main.LEN_SHINGLES);
+								if(curr==null) continue;
 								Database.updateClaimMinHash(curr, obj.name, numbers[i]);
 								for(int j = 0; j<curr.size(); j++) {
 									if(claimCache[j] > curr.get(j)) claimCache[j] = curr.get(j);

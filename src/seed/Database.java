@@ -70,6 +70,7 @@ public class Database {
 
 
 	public static void updateAbstractMinHash(List<Integer> minHash, String name) throws SQLException {
+		if(minHash==null)return;
 		// Add patent values as array
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 
@@ -95,6 +96,8 @@ public class Database {
 	}
 
 	public static void updateDescriptionMinHash(List<Integer> minHash, String name) throws SQLException {
+		if(minHash==null)return;
+
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 
 		columns.add("pub_doc_number");
@@ -119,6 +122,8 @@ public class Database {
 	}
 
 	public static void updateClaimMinHash(List<Integer> minHash, String name, Integer num) throws SQLException {
+		if(minHash==null)return;
+
 		StringJoiner insert = new StringJoiner(" ");
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 
@@ -144,6 +149,8 @@ public class Database {
 	}
 
 	public static void updateCachedClaimMinHash(Integer[] minHash, String name) throws SQLException {
+		if(minHash==null)return;
+
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 		columns.add("pub_doc_number");
 		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
