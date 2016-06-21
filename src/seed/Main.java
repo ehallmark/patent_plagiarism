@@ -59,6 +59,8 @@ public class Main {
 								Database.safeCommit();
 								System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
 								timeInit = System.currentTimeMillis();
+								// Update last date
+								Database.updateLastPatentDate();
 								timeToCommit=0;
 								System.gc(); System.gc();
 							}
