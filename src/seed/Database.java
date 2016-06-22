@@ -18,7 +18,7 @@ public class Database {
 	private static Connection mainConn;
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date > ? ORDER BY pub_date";
-	private static final String selectClaims = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ANY(?) GROUP BY pub_doc_number";
+	private static final String selectClaims = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ?";
 
 	
 	public static void setupMainConn() throws SQLException {
@@ -346,9 +346,9 @@ public class Database {
 	}
 
 	
-	public static ResultSet selectClaims(Object[] patents) throws SQLException {
+	public static ResultSet selectClaims(String patent) throws SQLException {
 		PreparedStatement ps = seedConn.prepareStatement(selectClaims);
-		ps.setArray(1, seedConn.createArrayOf("VARCHAR", patents));
+		ps.setString(1, patent);
 
 		//ps.setFetchSize(Main.FETCH_SIZE);
 		//System.out.println(ps);
