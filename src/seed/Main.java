@@ -37,7 +37,7 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
-		queue = new ArrayBlockingQueue<QueueSender>(5000);
+		queue = new ArrayBlockingQueue<QueueSender>(2500);
 		Thread thr = new Thread() {
 			@Override
 			public void run() {
@@ -55,11 +55,11 @@ public class Main {
 							new Patent(res);
 							timeToCommit++;
 							if(timeToCommit > 1000) {
-								Database.safeCommit();
 								System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
 								timeInit = System.currentTimeMillis();
 								// Update last date
 								Database.updateLastPatentDate();
+								Database.safeCommit();
 								timeToCommit=0;
 								System.gc(); System.gc();
 							}
@@ -88,7 +88,7 @@ public class Main {
 						// Queue is full
 						try {
 							// sleep awhile to let other thread compute
-							while (queue.size() > 200)
+							while (queue.size() > 250)
 								Thread.sleep(500);
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
