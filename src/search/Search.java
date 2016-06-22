@@ -8,6 +8,7 @@ import spark.Request;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.StringJoiner;
 
 import static spark.Spark.get;
@@ -82,6 +83,8 @@ public class Search {
 			res.cookie("limit", limit.toString());
 			
 			SimilarityType type = getSimilarityType(req);
+			if(type.equals(SimilarityType.CITATION)) return  template.add("<b>Cannot find citations for text input!</b>").toString();
+
 			res.cookie("by", type.toString().toLowerCase()); 
 			
 			// Create min hash for this text
@@ -114,6 +117,8 @@ public class Search {
 			if(type.equalsIgnoreCase("abstract")) return SimilarityType.ABSTRACT;
 			else if(type.equalsIgnoreCase("description")) return SimilarityType.DESCRIPTION;
 			else if(type.equalsIgnoreCase("claim")) return SimilarityType.CLAIM;
+			else if(type.equalsIgnoreCase("citation")) return SimilarityType.CITATION;
+
 		} else {
 			// Check cookies
 			type = req.cookie("by");
@@ -121,13 +126,15 @@ public class Search {
 				if(type.equalsIgnoreCase("abstract")) return SimilarityType.ABSTRACT;
 				else if(type.equalsIgnoreCase("description")) return SimilarityType.DESCRIPTION;
 				else if(type.equalsIgnoreCase("claim")) return SimilarityType.CLAIM;
+				else if(type.equalsIgnoreCase("citation")) return SimilarityType.CITATION;
+
 			}
 		}
 		// DEFAULT
 		return SimilarityType.ABSTRACT;
 	}
 
-	public static String resultsToHTML(ArrayList<PatentResult> results, SimilarityType type, Request req) {
+	public static String resultsToHTML(List<PatentResult> results, SimilarityType type, Request req) {
 		StringJoiner outerWrapper = new StringJoiner("","<div style='width:70%; left:0px; top:0px; height: auto;'>","</div>");
 		StringJoiner sj = new StringJoiner("","<table><tbody>","</tbody></table>");
 		String prefix = "<form action='"+req.uri()+"' id='form1' style='display:inline;' method='"+req.requestMethod()+"'>";
@@ -137,36 +144,47 @@ public class Search {
 		StringJoiner form1 = new StringJoiner("",prefix,suffix);
 		StringJoiner form2 = new StringJoiner("",prefix,suffix);
 		StringJoiner form3 = new StringJoiner("",prefix,suffix);
+		StringJoiner form4 = new StringJoiner("",prefix,suffix);
+
 		req.queryParams().forEach(q->{
 			if(!q.equalsIgnoreCase("by"))mainContents.add("<input type='hidden' name='"+q+"' value='"+req.queryParams(q).replaceAll("[^0-9A-Za-z :;,.]", "")+"' />");				
 		});
 		
 		form1.add(mainContents.toString()).add("<input type='hidden' name='by' value='abstract' />");	
 		form2.add(mainContents.toString()).add("<input type='hidden' name='by' value='description' />");	
-		form3.add(mainContents.toString()).add("<input type='hidden' name='by' value='claim' />");	
+		form3.add(mainContents.toString()).add("<input type='hidden' name='by' value='claim' />");
+		form4.add(mainContents.toString()).add("<input type='hidden' name='by' value='citation' />");
+
 
 		String absBtn = "<button>Abstract</button>";
 		String descBtn = "<button>Description</button>";
 		String claimBtn = "<button>Claims</button>";
+		String citationBtn = "<button>Citations</button>";
+
 		if(type.equals(SimilarityType.ABSTRACT)) {
 			absBtn = "<button style='background-color: blue; color: white;' disabled>Abstract</button>";
 		} else if (type.equals(SimilarityType.DESCRIPTION)) {
 			descBtn = "<button style='background-color: blue; color: white;' disabled>Description</button>";
 		} else if (type.equals(SimilarityType.CLAIM)) {
 			claimBtn = "<button style='background-color: blue; color: white;' disabled>Claims</button>";
-		}			
-		
-		StringJoiner subtitle = new StringJoiner("","<h4>By Similarity Of ","</h4>");
-		form1.add(absBtn); form2.add(descBtn); form3.add(claimBtn); subtitle.add(form1.toString()+form2.toString()+form3.toString());
+		} else if (type.equals(SimilarityType.CITATION)) {
+			citationBtn = "<button style='background-color: blue; color: white;' disabled>Citations</button>";
+		}
+
+		StringJoiner subtitle = new StringJoiner("","<h4>By ","</h4>");
+		form1.add(absBtn); form2.add(descBtn); form3.add(claimBtn); form4.add(citationBtn); subtitle.add(form1.toString()+form2.toString()+form3.toString()+form4.toString());
 		
 		// actual results
 		if(results == null) {
 			outerWrapper.add("Patent not found!");
-		}  else {
+		}  else if (results.isEmpty()) {
+			outerWrapper.add("No results found!");
+
+		} else {
 			results.forEach(r->{
 				StringJoiner row = new StringJoiner("</td><td>","<tr><td>","</td></tr>");
 				row.add(r.getUrl());
-				row.add(r.getSimilarity());
+				if(!type.equals(SimilarityType.CITATION))row.add(r.getSimilarity());
 				row.add(r.getExternalUrl());
 				sj.add(row.toString());
 			});	

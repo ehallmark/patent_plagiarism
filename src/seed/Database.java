@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -36,7 +37,7 @@ public class Database {
 	}
 	
 	public enum SimilarityType {
-		ABSTRACT, DESCRIPTION, CLAIM
+		ABSTRACT, DESCRIPTION, CLAIM, CITATION
 	}
 
 	public static ResultSet selectPatents(int limit)throws SQLException {
@@ -174,7 +175,18 @@ public class Database {
 		ps.close();
 	}
 
-	public static ArrayList<PatentResult> similarPatents(String patent,SimilarityType type,
+	private static List<PatentResult> getCitationsOfPatent(String patent) throws SQLException {
+		PreparedStatement ps = mainConn.prepareStatement("SELECT patent_cited_doc_number from patent_grant_citation where pub_doc_number=?");
+		ps.setString(1, patent);
+		ResultSet res = ps.executeQuery();
+		List<PatentResult> toReturn = new ArrayList<>();
+		while(res.next()) {
+			toReturn.add(new PatentResult(res.getString(1)));
+		}
+		return toReturn;
+	}
+
+	public static List<PatentResult> similarPatents(String patent,SimilarityType type,
 			int limit) throws SQLException {
 		String SQLSeedTable;
 		String SQLTable;
@@ -199,6 +211,9 @@ public class Database {
 				bandLength = Main.LEN_BANDS_DESCRIPTION;
 				numBands = Main.NUM_HASH_FUNCTIONS_DESCRIPTION/Main.LEN_BANDS_DESCRIPTION;
 			} break;
+			case CITATION: {
+				return getCitationsOfPatent(patent);
+			}
 			case CLAIM: {
 				SQLSeedTable = "patent_claim_cache_min_hash";
 				SQLTable = "patent_claim_min_hash";
