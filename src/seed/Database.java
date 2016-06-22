@@ -176,7 +176,7 @@ public class Database {
 	}
 
 	private static List<PatentResult> getCitationsOfPatent(String patent) throws SQLException {
-		PreparedStatement ps = mainConn.prepareStatement("SELECT patent_cited_doc_number from patent_grant_citation where pub_doc_number=?");
+		PreparedStatement ps = mainConn.prepareStatement("SELECT patent_cited_doc_number FROM patent_grant_citation WHERE pub_doc_number=? ORDER BY patent_cited_doc_number DESC");
 		ps.setString(1, patent);
 		ResultSet res = ps.executeQuery();
 		List<PatentResult> toReturn = new ArrayList<>();
