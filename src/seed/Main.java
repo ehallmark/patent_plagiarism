@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
-//import java.util.concurrent.*;
 
 public class Main {
 	public static final int LEN_SHINGLES = 6;
