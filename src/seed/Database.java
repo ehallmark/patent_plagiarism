@@ -5,6 +5,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -34,6 +35,10 @@ public class Database {
 	public static void setupSeedConn() throws SQLException {
 		seedConn = DriverManager.getConnection(inUrl);
 		seedConn.setAutoCommit(false);
+	}
+	
+	public static void autoCommitConn() throws SQLException {
+		mainConn = DriverManager.getConnection(outUrl);
 	}
 
 	public static void safeCommit() throws SQLException {
@@ -117,6 +122,71 @@ public class Database {
 		return ps2.executeQuery();
 	}
 	
+	public static ResultSet claimMinHash() throws SQLException {
+		// Get the patent's hash values
+		String selectPatent;
+		StringJoiner select = new StringJoiner(",","SELECT pub_doc_number,"," FROM patent_claim_min_hash GROUP BY pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			select.add("MIN(m" + i + ")");
+		}
+		selectPatent = select.toString();
+		System.out.println(selectPatent);
+		PreparedStatement ps = seedConn.prepareStatement(selectPatent);
+		ps.setFetchSize(5);
+		return ps.executeQuery();
+	}
+	
+	public static void insertCachedClaim(ResultSet results) throws SQLException {
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+		columns.add("pub_doc_number");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			columns.add("m" + i);
+		}
+		
+		StringJoiner insertPatent = new StringJoiner(" ");
+		insertPatent.add("INSERT INTO patent_claim_cache_min_hash");
+		insertPatent.add(columns.toString());
+		insertPatent.add("VALUES");
+		StringJoiner patentVals = new StringJoiner(",", "(", ")");
+		patentVals.add("'" + results.getString(1) + "'");
+		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			patentVals.add(String.valueOf(results.getInt(i+1)));
+		}
+		insertPatent.add(patentVals.toString());
+		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
+		Savepoint save = mainConn.setSavepoint();
+		try {
+			ps.executeUpdate();
+		} catch (SQLException sql) {
+			mainConn.rollback(save);
+		}
+	}
+
+	public static void updateCachedClaim(ResultSet results) throws SQLException {
+		StringJoiner columns = new StringJoiner(",", "(", ")");
+		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			columns.add("m" + i);
+		}		
+		StringJoiner insertPatent = new StringJoiner(" ");
+		insertPatent.add("UPDATE patent_claim_cache_min_hash SET");
+		insertPatent.add(columns.toString());
+		insertPatent.add("=");
+		StringJoiner patentVals = new StringJoiner(",", "(", ")");
+		for(int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
+			patentVals.add(String.valueOf(results.getInt(i+1)));
+		}
+		insertPatent.add(patentVals.toString());
+		insertPatent.add("WHERE pub_doc_number = ?");
+		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
+		ps.setString(1,results.getString(1));
+		Savepoint save = mainConn.setSavepoint();
+		try {
+			ps.executeUpdate();
+		} catch (SQLException sql) {
+			mainConn.rollback(save);
+		}
+	}
+	
 	public static String cleanWords(String unClean) throws SQLException {
 		PreparedStatement ps = mainConn.prepareStatement("SELECT words(?) AS words");
 		ps.setString(1,unClean);
@@ -151,8 +221,12 @@ public class Database {
 		});
 		insertAbstract.add(abstractVals.toString());
 		PreparedStatement ps = mainConn.prepareStatement(insertAbstract.toString());
-		ps.executeUpdate();
-		ps.close();
+		Savepoint save = mainConn.setSavepoint();
+		try {
+			ps.executeUpdate();
+		} catch (SQLException sql) {
+			mainConn.rollback(save);
+		}
 	}
 
 	public static void updateDescriptionMinHash(List<Integer> minHash, String name) throws SQLException {
@@ -176,8 +250,12 @@ public class Database {
 		});
 		insertDescription.add(descriptionVals.toString());
 		PreparedStatement ps = mainConn.prepareStatement(insertDescription.toString());
-		ps.executeUpdate();
-		ps.close();
+		Savepoint save = mainConn.setSavepoint();
+		try {
+			ps.executeUpdate();
+		} catch (SQLException sql) {
+			mainConn.rollback(save);
+		}
 
 	}
 
@@ -205,7 +283,12 @@ public class Database {
 		});
 		insert.add(vals.toString());
 		PreparedStatement ps = mainConn.prepareStatement(insert.toString());
-		ps.executeUpdate();
+		Savepoint save = mainConn.setSavepoint();
+		try {
+			ps.executeUpdate();
+		} catch (SQLException sql) {
+			mainConn.rollback(save);
+		}
 	}
 
 	public static void updateCachedClaimMinHash(Integer[] minHash, String name) throws SQLException {
@@ -228,8 +311,13 @@ public class Database {
 		}
 		insertPatent.add(patentVals.toString());
 		PreparedStatement ps = mainConn.prepareStatement(insertPatent.toString());
-		ps.executeUpdate();
-		ps.close();
+		Savepoint save = mainConn.setSavepoint();
+		try {
+			ps.executeUpdate();
+		} catch (SQLException sql) {
+			mainConn.rollback(save);
+		}
+
 	}
 
 	private static List<PatentResult> getCitationsOfPatent(String patent, boolean withAssignees) throws SQLException {
