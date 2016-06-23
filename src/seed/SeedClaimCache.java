@@ -15,7 +15,7 @@ public class SeedClaimCache {
 				} catch (Exception e) { }
 			}
 			Database.setupSeedConn();
-			Database.autoCommitConn();
+			Database.setupMainConn();
 			start();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -33,15 +33,10 @@ public class SeedClaimCache {
 		while(results.next()) {
 			System.out.println(results.getString(1));
 			try{
-				Database.insertCachedClaim(results);
+				Database.insertOrUpdateCachedClaim(results);
 			} catch(SQLException sql) {
 				// try to update
-				try {
-					Database.updateCachedClaim(results);
-				} catch(SQLException sql2) {
-					sql.printStackTrace();
-					sql2.printStackTrace();
-				}
+				sql.printStackTrace(); 
 			}
 		}
 	}

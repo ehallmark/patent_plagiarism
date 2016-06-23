@@ -37,10 +37,6 @@ public class Database {
 		seedConn.setAutoCommit(false);
 	}
 	
-	public static void autoCommitConn() throws SQLException {
-		mainConn = DriverManager.getConnection(outUrl);
-	}
-
 	public static void safeCommit() throws SQLException {
 		mainConn.commit();
 	}
@@ -136,7 +132,7 @@ public class Database {
 		return ps.executeQuery();
 	}
 	
-	public static void insertCachedClaim(ResultSet results) throws SQLException {
+	public static void insertOrUpdateCachedClaim(ResultSet results) throws SQLException {
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 		columns.add("pub_doc_number");
 		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
@@ -159,10 +155,11 @@ public class Database {
 			ps.executeUpdate();
 		} catch (SQLException sql) {
 			mainConn.rollback(save);
+			updateCachedClaim(results);
 		}
 	}
 
-	public static void updateCachedClaim(ResultSet results) throws SQLException {
+	private static void updateCachedClaim(ResultSet results) throws SQLException {
 		StringJoiner columns = new StringJoiner(",", "(", ")");
 		for (int i = 1; i <= Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
 			columns.add("m" + i);
