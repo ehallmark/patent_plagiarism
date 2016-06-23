@@ -12,12 +12,8 @@ public class ClaimResult extends PatentResult {
 	
 	@Override
 	public String getName() {
-		return name+" Claim "+claimNumber;
-	}
-
-	@Override
-	public String getUrl() {
-		return super.getUrl()+" Claim "+claimNumber;
+		if(assignee!=null) return name+" Claim "+claimNumber+" ("+assignee+") ";
+		else return name+" Claim "+claimNumber;
 	}
 	
 	@Override

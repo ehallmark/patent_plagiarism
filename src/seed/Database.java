@@ -201,13 +201,13 @@ public class Database {
 		ps.close();
 	}
 
-	private static List<PatentResult> getCitationsOfPatent(String patent) throws SQLException {
+	private static List<PatentResult> getCitationsOfPatent(String patent, boolean withAssignees) throws SQLException {
 		PreparedStatement ps = mainConn.prepareStatement(selectCitations);
 		ps.setString(1, patent);
 		ResultSet res = ps.executeQuery();
 		List<PatentResult> toReturn = new ArrayList<>();
 		while(res.next()) {
-			toReturn.add(new PatentResult(res.getString(1)));
+			toReturn.add(new PatentResult(res.getString(1),withAssignees));
 		}
 		return toReturn;
 	}
@@ -238,7 +238,7 @@ public class Database {
 				numBands = Main.NUM_HASH_FUNCTIONS_DESCRIPTION/Main.LEN_BANDS_DESCRIPTION;
 			} break;
 			case CITATION: {
-				return getCitationsOfPatent(patent);
+				return getCitationsOfPatent(patent,withAssignees);
 			}
 			case CLAIM: {
 				SQLSeedTable = "patent_claim_cache_min_hash";

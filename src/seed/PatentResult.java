@@ -8,7 +8,7 @@ public class PatentResult {
 	protected String name;
 	private Integer similarity;
 	private Integer num_functions;
-	private String assignee;
+	protected String assignee;
 
 
 	public PatentResult(String name, Integer similarity, SimilarityType type, boolean withAssignees) {
@@ -28,17 +28,13 @@ public class PatentResult {
 				num_functions = null;
 			} break;
 		}
-		if(withAssignees) {
-			try {
-				assignee = Database.selectAssignee(name);
-			} catch(SQLException sql) {
-				sql.printStackTrace();
-			}
-		}
+		checkAssigneePresence(withAssignees);
 	}
 	
-	public PatentResult(String name) {
+	public PatentResult(String name, boolean withAssignees) {
 		this.name = name;
+		checkAssigneePresence(withAssignees);
+
 	}
 
 	public String getSimilarity() {
@@ -57,6 +53,16 @@ public class PatentResult {
 
 	public String getUrl() {
 		return "<b><a style='margin-left:5px; margin-left:5px;' title='Find Patents Similar to "+name+"' href='find_by_patent?patent=" + name + "' >"+getName()+"</a></b>";
+	}
+	
+	private void checkAssigneePresence(boolean withAssignees) {
+		if(withAssignees) {
+			try {
+				assignee = Database.selectAssignee(name);
+			} catch(SQLException sql) {
+				sql.printStackTrace();
+			}
+		}
 	}
 	
 }

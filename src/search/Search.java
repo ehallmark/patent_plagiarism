@@ -71,7 +71,7 @@ public class Search {
 						
 			SimilarityType type = getSimilarityType(req);
 			res.cookie("by", type.toString().toLowerCase()); 
-			PatentResult pr = new PatentResult(patent); 
+			PatentResult pr = new PatentResult(patent,withAssignees); 
 			String title = "<h4>Results for Patent "+pr.getUrl()+pr.getExternalUrl()+"</h4>";
 			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit, withAssignees),type, req));
 			return template.toString();
