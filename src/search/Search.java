@@ -139,6 +139,8 @@ public class Search {
 	public static boolean getWithAssignees(Request req) {
 		String assignees = req.queryParams("withAssignees");
 		if(assignees!=null && assignees.equalsIgnoreCase("true")) return true;
+		if(assignees!=null && assignees.equalsIgnoreCase("false")) return false;
+
 		String assigneesCookie = req.cookie("withAssignees");
 		if(assigneesCookie!=null && assigneesCookie.equalsIgnoreCase("true")) return true;
 		return false;
