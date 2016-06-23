@@ -21,6 +21,8 @@ public class Database {
 	private static final String selectClaims = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ?";
 	private static final String selectCitations = "SELECT patent_cited_doc_number FROM patent_grant_citation WHERE pub_doc_number=? AND patent_cited_doc_number IS NOT NULL ORDER BY patent_cited_doc_number DESC";
 	private static final String selectAssignee = "SELECT orgname FROM patent_grant_assignee WHERE pub_doc_number=? AND orgname IS NOT NULL";
+	private static final String selectApplicant = "SELECT orgname FROM patent_grant_applicant WHERE pub_doc_number=? AND orgname IS NOT NULL";
+
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
 		mainConn.setAutoCommit(false);
@@ -46,9 +48,22 @@ public class Database {
 		if(results.next()) {
 			return results.getString(1);
 		} else {
-			return null;
+			ps.close();
+			return selectApplicant(patent);
 		}
 		
+	}
+	
+	public static String selectApplicant(String patent) throws SQLException {
+		PreparedStatement ps = mainConn.prepareStatement(selectApplicant);
+		ps.setString(1, patent);
+		ResultSet results = ps.executeQuery();
+		if(results.next()) {
+			return results.getString(1);
+		} else {
+			ps.close();
+			return null;
+		}
 	}
 
 	public static ResultSet selectPatents(int limit)throws SQLException {
