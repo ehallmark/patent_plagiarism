@@ -1,10 +1,14 @@
 package seed;
 
-import seed.Database.SimilarityType;
-
 import java.sql.SQLException;
-import java.util.*;
-import java.util.stream.IntStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
+import seed.Database.SimilarityType;
 
 
 
@@ -19,7 +23,7 @@ public class NLP {
 	}
 	
 	private static Set<Integer> createShingles(String result, int shingleLength) {
-		Set<Integer> shingles = new HashSet();
+		Set<Integer> shingles = new HashSet<Integer>();
 		for(int i = 0; i < result.length()-shingleLength; i++) {
 			shingles.add(result.substring(i, i+shingleLength).hashCode());
 		}

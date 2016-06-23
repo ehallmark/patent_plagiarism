@@ -1,25 +1,45 @@
 package seed;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.TimeUnit;
 
-public class Patent extends Thread {
+import seed.Database.SimilarityType;
+
+public class Patent {
 	public static Integer lastPubDate;
+
 	// Constructor
-	public Patent(QueueSender obj, ForkJoinPool pool){
-		Patent.lastPubDate=obj.date;
-		// use parallelism if available
-		if(!pool.hasQueuedSubmissions() || pool.getQueuedSubmissionCount() < 5) {
-			//pool.execute(new PatentClaims(obj.name));
-			pool.execute(new PatentAbstract(obj.oAbstract,obj.name));
-			pool.execute(new PatentDescription(obj.description,obj.name));
+	public Patent(QueueSender obj)  {
+		// Fork process
+		ForkJoinPool pool = new ForkJoinPool(2);
+		
+		pool.execute(new RecursiveAction() {
+			public void compute() {
+				try {
+					Database.updateAbstractMinHash(NLP.createMinHash(obj.oAbstract, SimilarityType.ABSTRACT, Main.LEN_SHINGLES), obj.name);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		
+		pool.execute(new RecursiveAction() {
+			public void compute() {
+				try {
+					Database.updateDescriptionMinHash(NLP.createMinHash(obj.description,SimilarityType.DESCRIPTION, Main.LEN_SHINGLES), obj.name);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 
-		} else {
-			//(new PatentClaims(obj.name)).compute();
-			(new PatentAbstract(obj.oAbstract,obj.name)).compute();
-			(new PatentDescription(obj.description,obj.name)).compute();
+		try {
+			pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
+		} catch(Exception e) {
+			e.printStackTrace();
 		}
-
 		System.out.println(obj.name);
+		Patent.lastPubDate=obj.date;
 	}
-
 }
