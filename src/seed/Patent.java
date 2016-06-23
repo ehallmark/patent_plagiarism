@@ -33,7 +33,9 @@ public class Patent {
 				}
 			}
 		});
-
+		
+		pool.shutdown();
+		
 		try {
 			pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
 		} catch(Exception e) {
