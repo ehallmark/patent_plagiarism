@@ -47,7 +47,7 @@ public class MainClaims {
 				try {
 					pool.execute(new Claim(results.getString(1),results.getString(2), results.getInt(3), results.getInt(4)));
 					timeToCommit++;
-					if(timeToCommit > 1000) {
+					if(timeToCommit > 10000) {
 						while(pool.hasQueuedSubmissions()) {
 							try {
 								pool.awaitQuiescence(500, TimeUnit.MILLISECONDS);
@@ -56,7 +56,7 @@ public class MainClaims {
 							}
 						}
 
-						System.out.println("Finished 1000 Claims in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+						System.out.println("Finished 10000 Claims in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
 						timeInit = System.currentTimeMillis();
 						// Update last date
 						Database.updateLastClaimDate();
