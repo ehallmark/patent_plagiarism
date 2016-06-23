@@ -27,6 +27,7 @@ public class Claim extends RecursiveAction {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		System.out.println(lastUid);
 	}
 	
 }
