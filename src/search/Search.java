@@ -22,6 +22,7 @@ public class Search {
 			+ "<form action='/find_by_patent' method='get'>"
 			+ "<label style='margin: 5px 10px;'>Patent:</label><input id='patent' name='patent' /><br/>"
 			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
+			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><input type='checkbox' name='withAssignees' id='withAssignees' value='true' /><br/><br/>"
 			+ "<button>Search</button>"
 
 		+ "</form>"
@@ -29,6 +30,7 @@ public class Search {
 		+ "<form action='/find_by_text' method='post'>"
 			+ "<label style='margin: 5px 10px; vertical-text-align: top; text-align:top; vertical-align:top;'>Text:</label><textarea rows='10' cols='50' id='text' name='text' ></textarea><br/>"
 			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
+			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><input type='checkbox' name='withAssignees' id='withAssignees' value='true' /><br/><br/>"
 			+ "<button>Search</button>"
 		+ "</form>";
 	
@@ -59,9 +61,11 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			String patent = req.queryParams("patent");
 			Integer limit = getLimit(req);
+			boolean withAssignees = getWithAssignees(req);
 			// set cookie
 			res.cookie("limit", limit.toString());
-				
+			res.cookie("withAssignees", String.valueOf(withAssignees));
+
 			if(patent==null || patent.trim().length()==0) return template.add("<b>Please provide a patent number!</b>").toString();
 			else {patent=patent.toUpperCase().trim().replaceAll("US","").replaceAll("[^0-9A-Z]", "");}
 						
@@ -69,7 +73,7 @@ public class Search {
 			res.cookie("by", type.toString().toLowerCase()); 
 			PatentResult pr = new PatentResult(patent); 
 			String title = "<h4>Results for Patent "+pr.getUrl()+pr.getExternalUrl()+"</h4>";
-			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit),type, req));
+			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit, withAssignees),type, req));
 			return template.toString();
 		});
 		
@@ -79,9 +83,10 @@ public class Search {
 			if(text==null) return  template.add("<b>Please provide some text!</b>").toString();
 			else {text=Database.cleanWords(text);}			
 			Integer limit = getLimit(req);
+			boolean withAssignees = getWithAssignees(req);
 			// set cookie
 			res.cookie("limit", limit.toString());
-			
+			res.cookie("withAssignees", String.valueOf(withAssignees));
 			SimilarityType type = getSimilarityType(req);
 			if(type.equals(SimilarityType.CITATION)) return  template.add("<b>Cannot find citations for text input!</b>").toString();
 
@@ -96,7 +101,7 @@ public class Search {
 				return template.add("<b>Unable to perform search. Try providing more text!</b>").toString();
 			}
 			
-			template.add(resultsToHTML(Database.similarPatents(p.getValues(),type,limit),type, req));
+			template.add(resultsToHTML(Database.similarPatents(p.getValues(),type,limit,withAssignees),type, req));
 			return template.toString();
 		});
 	}
@@ -132,6 +137,14 @@ public class Search {
 		}
 		// DEFAULT
 		return SimilarityType.ABSTRACT;
+	}
+	
+	public static boolean getWithAssignees(Request req) {
+		String assignees = req.queryParams("withAssignees");
+		if(assignees!=null && assignees.equalsIgnoreCase("true")) return true;
+		String assigneesCookie = req.cookie("withAssignees");
+		if(assigneesCookie!=null && assigneesCookie.equalsIgnoreCase("true")) return true;
+		return false;
 	}
 
 	public static String resultsToHTML(List<PatentResult> results, SimilarityType type, Request req) {
