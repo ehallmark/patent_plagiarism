@@ -12,7 +12,7 @@ public class Patent {
 	// Constructor
 	public Patent(QueueSender obj)  {
 		// Fork process
-		ForkJoinPool pool = new ForkJoinPool(2);
+		ForkJoinPool pool = new ForkJoinPool();
 		
 		pool.execute(new RecursiveAction() {
 			public void compute() {
