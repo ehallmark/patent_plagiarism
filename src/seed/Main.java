@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 	public static final int LEN_SHINGLES = 6;
-	
+
 	public static final int NUM_BANDS_DESCRIPTION = 20;
 	public static final int LEN_BANDS_DESCRIPTION = 4;
 	public static final int NUM_HASH_FUNCTIONS_DESCRIPTION = 400;
@@ -19,11 +22,10 @@ public class Main {
 	public static final int NUM_BANDS_CLAIM = 10;
 	public static final int LEN_BANDS_CLAIM = 4;
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
-	
-	private ArrayBlockingQueue<QueueSender> queue;
-	private boolean kill = false;
+
 	public static int FETCH_SIZE = 5;
-	//private ForkJoinPool fork = new ForkJoinPool();
+	private int numProcessors;
+	private ForkJoinPool pool;
 
 	Main() throws IOException, SQLException {
 		this(-1);
@@ -37,89 +39,43 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
-		queue = new ArrayBlockingQueue<QueueSender>(2500);
-		Thread thr = new Thread() {
-			@Override
-			public void run() {
-				try{Thread.sleep(1000);}catch(InterruptedException ie) {ie.printStackTrace();}
-				QueueSender res = null;
-				int timeToCommit = 0;
-				long timeInit = System.currentTimeMillis();
-				try {
-					while (!kill) {
-						if ((res = queue.poll()) == null) {
-							Thread.sleep(50);
-							continue;
-						}
-						try {
-							new Patent(res);
-							timeToCommit++;
-							if(timeToCommit > 1000) {
-								System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
-								timeInit = System.currentTimeMillis();
-								// Update last date
-								Database.updateLastPatentDate();
-								Database.safeCommit();
-								timeToCommit=0;
-								System.gc(); System.gc();
-							}
 
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							continue;
-						}
+		numProcessors = Runtime.getRuntime().availableProcessors();
+		pool = new ForkJoinPool();
 
-					}
-
-
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-
-		};
-		thr.start();
 		ResultSet results = Database.selectPatents(limit);
 		try {
+			int timeToCommit = 0;
+			long timeInit = System.currentTimeMillis();
 			while (results.next()) {
 				try {
-					while (!queue.offer(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4)))) {
-						// Queue is full
+					pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2),results.getString(3),results.getString(4))));
+					timeToCommit++;
+					if(timeToCommit > 1000) {
+						pool.shutdown();
 						try {
-							// sleep awhile to let other thread compute
-							while (queue.size() > 250)
-								Thread.sleep(500);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
+							pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
+						} catch(Exception e) {
 							e.printStackTrace();
-
 						}
+						pool = new ForkJoinPool();
+						System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+						timeInit = System.currentTimeMillis();
+						// Update last date
+						Database.updateLastPatentDate();
+						Database.safeCommit();
+						timeToCommit=0;
 					}
+					System.gc();
 
 				} catch (SQLException sql) {
 					sql.printStackTrace();
 				}
 			}
 		} finally {
-			while(!queue.isEmpty()) {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			kill = true;
-		}
-		try {
-			thr.join();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
+
 			try {
-				
+
 				Database.updateLastPatentDate();
 
 			} catch (SQLException e) {

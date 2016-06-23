@@ -6,14 +6,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.*;
 
-public class Patent {
+public class Patent extends RecursiveAction  {
 	public static Integer lastPubDate;
-
+	QueueSender obj;
 	// Constructor
-	public Patent(QueueSender obj)  {
+	public Patent(QueueSender obj) {
+		Patent.lastPubDate=obj.date;
+		this.obj=obj;
+	}
+
+	public void compute() {
+
 		// Fork process
-		RecursiveAction action = new RecursiveAction() {
-			public void compute() {
+		Thread claimsThread = new Thread() {
+			public void run() {
 				Integer[] claimCache = new Integer[Main.NUM_HASH_FUNCTIONS_CLAIM];
 				for (int i = 0; i < Main.NUM_HASH_FUNCTIONS_CLAIM; i++) {
 					claimCache[i] = Integer.MAX_VALUE;
@@ -62,13 +68,9 @@ public class Patent {
 				}
 			}
 		};
-		action.fork();
 
 
-		System.out.println(obj.name);
-		Patent.lastPubDate=obj.date;
-
-		Thread thr = new Thread() {
+		Thread abstractThread = new Thread() {
 			public void run() {
 				try {
 					Database.updateAbstractMinHash(NLP.createMinHash(obj.oAbstract, SimilarityType.ABSTRACT, Main.LEN_SHINGLES), obj.name);
@@ -78,7 +80,8 @@ public class Patent {
 			}
 		};
 
-		thr.start();
+		claimsThread.start();
+		abstractThread.start();
 
 		try {
 			Database.updateDescriptionMinHash(NLP.createMinHash(obj.description,SimilarityType.DESCRIPTION, Main.LEN_SHINGLES), obj.name);
@@ -86,10 +89,14 @@ public class Patent {
 			e.printStackTrace();
 		}
 		try {
-			thr.join();
+			abstractThread.join();
 		} catch (Exception e) {
 
 		}
+		try {
+			claimsThread.join();
+		} catch (Exception e) {
 
+		}
 	}
 }
