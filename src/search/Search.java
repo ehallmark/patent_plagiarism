@@ -36,7 +36,7 @@ public class Search {
 		+ "</form>";
 	
 	private static StringJoiner freshTemplate() {
-		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Similar Patent Finder</a></h2><hr/>","<br /><hr/>"+HTML+"</div>");
+		return new StringJoiner("","<div style='width:80%; padding: 2% 10%;'><h2><a style='color:black; text-decoration:none;' href='/'>Patent Plagiarism Detection</a></h2><hr/>","<br /><hr/>"+HTML+"</div>");
 	}
 	
 	public static void server() {
