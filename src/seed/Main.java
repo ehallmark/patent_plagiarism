@@ -50,6 +50,7 @@ public class Main {
 					new Patent(new QueueSender(results.getString(1),results.getInt(2),results.getString(3),results.getString(4)),pool);
 					timeToCommit++;
 					if(timeToCommit > 1000) {
+						System.gc(); System.gc(); System.gc();
 						pool.shutdown();
 						try {
 							pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
@@ -64,7 +65,6 @@ public class Main {
 						Database.safeCommit();
 						timeToCommit=0;
 					}
-					System.gc();
 
 				} catch (SQLException sql) {
 					sql.printStackTrace();
