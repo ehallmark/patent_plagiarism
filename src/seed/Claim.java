@@ -17,6 +17,8 @@ public class Claim extends RecursiveAction {
 		this.claimNum = claimNum;
 		this.claimText = claimText;
 		Claim.lastUid = lastUid;
+		System.out.println(lastUid);
+
 	}
 	
 
@@ -27,7 +29,6 @@ public class Claim extends RecursiveAction {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		System.out.println(lastUid);
 	}
 	
 }

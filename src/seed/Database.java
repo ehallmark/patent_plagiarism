@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.StringJoiner;
 
 public class Database {
-	private static String inUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
-	private static String outUrl = "jdbc:postgresql://localhost/patentdb?user=postgres&password=&tcpKeepAlive=true";
+	private static String inUrl = "jdbc:postgresql://192.168.1.148/patentdb?user=postgres&password=&tcpKeepAlive=true";
+	private static String outUrl = "jdbc:postgresql://192.168.1.148/patentdb?user=postgres&password=&tcpKeepAlive=true";
 
 	private static Connection seedConn;
 	private static Connection mainConn;
@@ -100,7 +100,7 @@ public class Database {
 		if(res.next()) {
 			ps2.setInt(1, res.getInt(1));
 		} else {
-			ps2.setInt(1, 1);
+			throw new SQLException("Cannot find UID");
 		}
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
