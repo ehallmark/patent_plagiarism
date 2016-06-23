@@ -22,16 +22,16 @@ public class Search {
 	private static final String HTML =  "<h3>By Patent</h3>"
 			+ "<form action='/find_by_patent' method='get'>"
 			+ "<label style='margin: 5px 10px;'>Patent:</label><input id='patent' name='patent' /><br/>"
-			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
-			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><input type='checkbox' name='withAssignees' id='withAssignees' value='true' /><br/><br/>"
+			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
+			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><label for='withAssigneesTrue'>Yes</label><input type='radio' name='withAssignees' id='withAssigneesTrue' value='true' /><label for='withAssigneesFalse'>No</label><input type='radio' name='withAssignees' id='withAssigneesFalse' value='false' /><br/><br/>"
 			+ "<button>Search</button>"
 
 		+ "</form>"
 		+ "<h3>By Text</h3>"
 		+ "<form action='/find_by_text' method='post'>"
 			+ "<label style='margin: 5px 10px; vertical-text-align: top; text-align:top; vertical-align:top;'>Text:</label><textarea rows='10' cols='50' id='text' name='text' ></textarea><br/>"
-			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/><br/>"
-			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><input type='checkbox' name='withAssignees' id='withAssignees' value='true' /><br/><br/>"
+			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
+			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><label for='withAssigneesTrue'>Yes</label><input type='radio' name='withAssignees' id='withAssigneesTrue' value='true' /><label for='withAssigneesFalse'>No</label><input type='radio' name='withAssignees' id='withAssigneesFalse' value='false' /><br/><br/>"
 			+ "<button>Search</button>"
 		+ "</form>";
 	
