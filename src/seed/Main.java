@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 	public static final int LEN_SHINGLES = 6;
@@ -37,10 +39,12 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
-		queue = new ArrayBlockingQueue<QueueSender>(5000);
+		queue = new ArrayBlockingQueue<QueueSender>(2500);
 		Thread thr = new Thread() {
+			
 			@Override
 			public void run() {
+				ForkJoinPool pool = new ForkJoinPool();
 				try{Thread.sleep(1000);}catch(InterruptedException ie) {ie.printStackTrace();}
 				QueueSender res = null;
 				int timeToCommit = 0;
@@ -48,13 +52,18 @@ public class Main {
 				try {
 					while (!kill) {
 						if ((res = queue.poll()) == null) {
-							Thread.sleep(50);
+							Thread.sleep(100);
 							continue;
 						}
 						try {
-							new Patent(res);
+							pool.execute(new Patent(res));
 							timeToCommit++;
 							if(timeToCommit > 1000) {
+								try {
+									pool.awaitQuiescence(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
+								} catch (Exception e) {
+									
+								}
 								System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
 								timeInit = System.currentTimeMillis();
 								// Update last date
