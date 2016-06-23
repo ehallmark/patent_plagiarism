@@ -24,7 +24,6 @@ public class Main {
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
 
 	public static int FETCH_SIZE = 5;
-	private int numProcessors;
 	private ForkJoinPool pool;
 
 	Main() throws IOException, SQLException {
@@ -40,7 +39,6 @@ public class Main {
 			return;
 		}
 
-		numProcessors = Runtime.getRuntime().availableProcessors();
 		pool = new ForkJoinPool();
 
 		ResultSet results = Database.selectPatents(limit);
