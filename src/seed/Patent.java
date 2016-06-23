@@ -1,13 +1,12 @@
 package seed;
 
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.TimeUnit;
 
 import seed.Database.SimilarityType;
 
 
 public class Patent extends RecursiveAction {
+	private static final long serialVersionUID = 1L;
 	public static Integer lastPubDate;
 	private QueueSender obj;
 	
