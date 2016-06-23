@@ -50,13 +50,13 @@ public class Main {
 					pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2),results.getString(3),results.getString(4))));
 					timeToCommit++;
 					if(timeToCommit > 1000) {
-						pool.shutdown();
+						/*pool.shutdown();
 						try {
 							pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
 						} catch(Exception e) {
 							e.printStackTrace();
 						}
-						pool = new ForkJoinPool();
+						pool = new ForkJoinPool();*/
 						System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
 						timeInit = System.currentTimeMillis();
 						// Update last date
@@ -71,7 +71,12 @@ public class Main {
 				}
 			}
 		} finally {
-
+			pool.shutdown();
+			try {
+				pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
 			try {
 
 				Database.updateLastPatentDate();
