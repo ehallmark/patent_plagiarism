@@ -39,71 +39,33 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
-		queue = new ArrayBlockingQueue<QueueSender>(2500);
-		Thread thr = new Thread() {
-			
-			@Override
-			public void run() {
-				ForkJoinPool pool = new ForkJoinPool();
-				try{Thread.sleep(1000);}catch(InterruptedException ie) {ie.printStackTrace();}
-				QueueSender res = null;
-				int timeToCommit = 0;
-				long timeInit = System.currentTimeMillis();
-				try {
-					while (!kill) {
-						if ((res = queue.poll()) == null) {
-							Thread.sleep(100);
-							continue;
-						}
-						try {
-							pool.execute(new Patent(res));
-							timeToCommit++;
-							if(timeToCommit > 1000) {
-								try {
-									pool.awaitQuiescence(Long.MAX_VALUE, TimeUnit.MICROSECONDS);
-								} catch (Exception e) {
-									
-								}
-								System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
-								timeInit = System.currentTimeMillis();
-								// Update last date
-								Database.updateLastPatentDate();
-								Database.safeCommit();
-								timeToCommit=0;
-								System.gc(); System.gc();
-							}
 
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							continue;
-						}
+		ForkJoinPool pool = new ForkJoinPool();
+		int timeToCommit = 0;
+		long timeInit = System.currentTimeMillis();
 
-					}
-
-
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-
-		};
-		thr.start();
 		ResultSet results = Database.selectPatents(limit);
 		try {
 			while (results.next()) {
 				try {
-					while (!queue.offer(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4)))) {
-						// Queue is full
-						try {
-							// sleep awhile to let other thread compute
-							while (queue.size() > 250)
-								Thread.sleep(500);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-
+					pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4))));
+					timeToCommit++;
+					if(timeToCommit > 1000) {
+						while(pool.hasQueuedSubmissions()) {
+							try {
+								pool.awaitQuiescence(500, TimeUnit.MILLISECONDS);
+							} catch (Exception e) {
+								
+							}
 						}
+
+						System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+						timeInit = System.currentTimeMillis();
+						// Update last date
+						Database.updateLastPatentDate();
+						Database.safeCommit();
+						timeToCommit=0;
+						System.gc(); System.gc();
 					}
 
 				} catch (SQLException sql) {
@@ -111,22 +73,7 @@ public class Main {
 				}
 			}
 		} finally {
-			while(!queue.isEmpty()) {
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			kill = true;
-		}
-		try {
-			thr.join();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
+
 			try {
 				
 				Database.updateLastPatentDate();
