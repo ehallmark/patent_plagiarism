@@ -1,18 +1,19 @@
 package search;
 
-import seed.Claim;
-import seed.Database;
-import seed.Database.SimilarityType;
-import seed.PatentResult;
-import spark.Request;
+import static spark.Spark.get;
+import static spark.Spark.post;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
 
-import static spark.Spark.get;
-import static spark.Spark.post;
+import seed.Database;
+import seed.Database.SimilarityType;
+import seed.Main;
+import seed.NLP;
+import seed.PatentResult;
+import spark.Request;
 
 
 
@@ -93,15 +94,11 @@ public class Search {
 			res.cookie("by", type.toString().toLowerCase()); 
 			
 			// Create min hash for this text
-			Claim p;
 			try {
-				p = new Claim(text,type);
-			} catch (Exception e) {
-				e.printStackTrace();
+				template.add(resultsToHTML(Database.similarPatents(NLP.createMinHash(text, type, Main.LEN_SHINGLES),type,limit,withAssignees),type, req));
+			} catch(Exception e) {
 				return template.add("<b>Unable to perform search. Try providing more text!</b>").toString();
 			}
-			
-			template.add(resultsToHTML(Database.similarPatents(p.getValues(),type,limit,withAssignees),type, req));
 			return template.toString();
 		});
 	}
