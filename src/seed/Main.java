@@ -25,6 +25,7 @@ public class Main {
 
 	public static int FETCH_SIZE = 5;
 	private ForkJoinPool pool;
+	private Thread mainThread;
 
 	Main() throws IOException, SQLException {
 		this(-1);
@@ -47,7 +48,8 @@ public class Main {
 			long timeInit = System.currentTimeMillis();
 			while (results.next()) {
 				try {
-					new Patent(new QueueSender(results.getString(1),results.getInt(2),results.getString(3),results.getString(4)),pool);
+					if(mainThread!=null)try {mainThread.join(); }catch(Exception e) {}
+					mainThread=new Patent(new QueueSender(results.getString(1),results.getInt(2),results.getString(3),results.getString(4)),pool);
 					timeToCommit++;
 					if(timeToCommit > 1000) {
 						System.gc(); System.gc(); System.gc();
