@@ -20,7 +20,7 @@ public class MainClaims {
 	public static final int NUM_BANDS_CLAIM = 10;
 	public static final int LEN_BANDS_CLAIM = 4;
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
-	
+	public static int lastClaimUid;
 	public static int FETCH_SIZE = 5;
 	//private ForkJoinPool fork = new ForkJoinPool();
 
@@ -40,48 +40,51 @@ public class MainClaims {
 		ForkJoinPool pool = new ForkJoinPool();
 		int timeToCommit = 0;
 		long timeInit = System.currentTimeMillis();
-
-		ResultSet results = Database.selectClaims(limit);
-		try {
-			while (results.next()) {
-				try {
-					pool.execute(new Claim(results.getString(1),results.getString(2), results.getInt(3), results.getInt(4)));
-					timeToCommit++;
-					if(timeToCommit > 10000) {
-						while(pool.hasQueuedSubmissions()) {
-							try {
-								pool.awaitQuiescence(500, TimeUnit.MILLISECONDS);
-							} catch (Exception e) {
-								
+		lastClaimUid = Database.selectLastClaimUid();
+		while(Claim.lastUid<lastClaimUid) {
+			ResultSet results = Database.selectClaims(limit);
+			try {
+				while (results.next()) {
+					try {
+						pool.execute(new Claim(results.getString(1),results.getString(2), results.getInt(3), results.getInt(4)));
+						timeToCommit++;
+						if(timeToCommit > 10000) {
+							while(pool.hasQueuedSubmissions()) {
+								try {
+									pool.awaitQuiescence(500, TimeUnit.MILLISECONDS);
+								} catch (Exception e) {
+									
+								}
 							}
+	
+							System.out.println("Finished 10000 Claims in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
+							timeInit = System.currentTimeMillis();
+							// Update last date
+							Database.updateLastClaimDate();
+							Database.safeCommit();
+							timeToCommit=0;
+							System.gc(); System.gc();
 						}
-
-						System.out.println("Finished 10000 Claims in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
-						timeInit = System.currentTimeMillis();
-						// Update last date
-						Database.updateLastClaimDate();
-						Database.safeCommit();
-						timeToCommit=0;
-						System.gc(); System.gc();
+	
+					} catch (SQLException sql) {
+						sql.printStackTrace();
 					}
+				}
+			} finally {
+	
+				try {
+					
+					Database.updateLastClaimDate();
+					Database.safeCommit();
 
-				} catch (SQLException sql) {
-					sql.printStackTrace();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
-		} finally {
-
-			try {
-				
-				Database.updateLastClaimDate();
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} finally {
-				Database.close();
-			}
 		}
+			
+		Database.close();
 
 	}
 

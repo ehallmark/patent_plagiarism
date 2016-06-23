@@ -7,7 +7,7 @@ import seed.Database.SimilarityType;
 
 public class Claim extends RecursiveAction {
 	private static final long serialVersionUID = 1L;
-	public static Integer lastUid;
+	public static Integer lastUid =1;
 	private String patentName;
 	private Integer claimNum;
 	private String claimText;

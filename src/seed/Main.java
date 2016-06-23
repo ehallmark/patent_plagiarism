@@ -74,6 +74,7 @@ public class Main {
 			try {
 				
 				Database.updateLastPatentDate();
+				Database.safeCommit();
 
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block

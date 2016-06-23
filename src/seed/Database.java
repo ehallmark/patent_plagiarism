@@ -20,7 +20,7 @@ public class Database {
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
 	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date > ? ORDER BY pub_date";
-	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claim, number, uid FROM patent_grant_claim WHERE uid > ? ORDER BY uid";
+	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claim, number, uid FROM patent_grant_claim WHERE uid between ? and ? ORDER BY uid";
 	private static final String selectCitations = "SELECT patent_cited_doc_number FROM patent_grant_citation WHERE pub_doc_number=? AND patent_cited_doc_number IS NOT NULL ORDER BY patent_cited_doc_number DESC";
 	private static final String selectAssignee = "SELECT orgname FROM patent_grant_assignee WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectApplicant = "SELECT orgname FROM patent_grant_applicant WHERE pub_doc_number=? AND orgname IS NOT NULL";
@@ -38,6 +38,13 @@ public class Database {
 
 	public static void safeCommit() throws SQLException {
 		mainConn.commit();
+	}
+	
+	public static int selectLastClaimUid() throws SQLException {
+		PreparedStatement ps = mainConn.prepareStatement("select max(uid) from patent_grant_claim");
+		ResultSet rs = ps.executeQuery(); 
+		rs.next();
+		return rs.getInt(1);
 	}
 	
 	public enum SimilarityType {
@@ -99,6 +106,7 @@ public class Database {
 		PreparedStatement ps2 = seedConn.prepareStatement(select);
 		if(res.next()) {
 			ps2.setInt(1, res.getInt(1));
+			ps2.setInt(2, res.getInt(1)+50000);
 		} else {
 			throw new SQLException("Cannot find UID");
 		}
