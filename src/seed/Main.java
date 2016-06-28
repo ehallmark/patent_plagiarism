@@ -30,7 +30,7 @@ public class Main {
 		this(-1);
 	}
 
-	private void setupLists() throws SQLException {
+	public static void setupLists() throws SQLException {
 		allCachedClaims=Database.selectPatentNumbers("patent_claim_cache_min_hash");
 		System.out.print(allCachedClaims.size()); System.out.println(" lists of claims already ingested...");
 	}
@@ -43,8 +43,6 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
-
-		setupLists();
 
 		ForkJoinPool pool = new ForkJoinPool();
 		int timeToCommit = 0;

@@ -63,7 +63,6 @@ public class Patent extends RecursiveAction {
 		}
 
 		if(!Main.allCachedClaims.contains(obj.name)) {
-			Main.allCachedClaims.remove(obj.name);
 			RecursiveAction action = new RecursiveAction() {
 				/**
 				 * 

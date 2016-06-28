@@ -14,6 +14,10 @@ public class SeedPatents {
 				} catch (Exception e) {
 				}
 			final int currentDate = Integer.valueOf(new SimpleDateFormat("yyyyMMdd").format(new Date()));
+			Database.setupSeedConn();
+			Database.setupMainConn();
+			Main.setupLists();
+			Database.close();
 			while((Patent.lastPubDate==null) || Patent.lastPubDate < currentDate) {
 				Database.setupSeedConn();
 				Database.setupMainConn();
