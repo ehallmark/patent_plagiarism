@@ -52,7 +52,8 @@ public class Main {
 		try {
 			while (results.next()) {
 				try {
-					pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4))));
+					if(Main.SEED_CLAIMS_ONLY) pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2), null, null)));
+					else pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4))));
 					timeToCommit++;
 					if(timeToCommit > 1000) {
 						while(pool.hasQueuedSubmissions()) {
