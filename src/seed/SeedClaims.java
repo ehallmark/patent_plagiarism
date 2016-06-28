@@ -14,7 +14,6 @@ public class SeedClaims {
 				}
 			Main.SEED_CLAIMS_ONLY=true;
 			final int currentDate = Integer.valueOf(new SimpleDateFormat("yyyyMMdd").format(new Date()));
-			
 			Database.setupSeedConn();
 			Database.setupMainConn();
 			Main.setupLists();
@@ -22,7 +21,7 @@ public class SeedClaims {
 			while((Patent.lastPubDate==null) || Patent.lastPubDate < currentDate) {
 				Database.setupSeedConn();
 				Database.setupMainConn();
-				new Main(50);
+				new Main(15);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
