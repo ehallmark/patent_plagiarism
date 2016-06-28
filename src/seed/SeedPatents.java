@@ -2,6 +2,8 @@ package seed;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class SeedPatents {
 	public static void main(String[] args) {
@@ -11,9 +13,12 @@ public class SeedPatents {
 					Main.FETCH_SIZE = Integer.parseInt(args[1]);
 				} catch (Exception e) {
 				}
-			Database.setupSeedConn();
-			Database.setupMainConn();
-			new Main();
+			final int currentDate = Integer.valueOf(new SimpleDateFormat("yyyyMMdd").format(new Date()));
+			while((Patent.lastPubDate==null) || Patent.lastPubDate < currentDate) {
+				Database.setupSeedConn();
+				Database.setupMainConn();
+				new Main(50);
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

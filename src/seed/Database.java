@@ -5,8 +5,11 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.StringJoiner;
 
 public class Database {
 	private static String inUrl = "jdbc:postgresql://192.168.1.148/patentdb?user=postgres&password=&tcpKeepAlive=true";
@@ -18,7 +21,7 @@ public class Database {
 	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
-	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date > ? ORDER BY pub_date";
+	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date between ? and ? ORDER BY pub_date";
 	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claim, number, uid FROM patent_grant_claim WHERE uid between ? and ? order by uid";
 	private static final String selectCitations = "SELECT patent_cited_doc_number FROM patent_grant_citation WHERE pub_doc_number=? AND patent_cited_doc_number IS NOT NULL ORDER BY patent_cited_doc_number DESC";
 	private static final String selectAssignee = "SELECT orgname FROM patent_grant_assignee WHERE pub_doc_number=? AND orgname IS NOT NULL";
@@ -91,23 +94,28 @@ public class Database {
 		}
 	}
 
-	public static ResultSet selectPatents(int limit)throws SQLException {
-		PreparedStatement ps = seedConn.prepareStatement(selectLastPatentIngestDate);
-		ResultSet res = ps.executeQuery();
-		String select = selectPatents;
-		if(limit > 0) {
-			select += " LIMIT "+limit;
-		}
-		PreparedStatement ps2 = seedConn.prepareStatement(select);
-		if(res.next()) {
-			ps2.setInt(1, res.getInt(1));
+	public static ResultSet selectPatents(int dateRange)throws SQLException {
+		Integer lastDate=null;
+		if(Patent.lastPubDate==null) {
+			PreparedStatement ps = seedConn.prepareStatement(selectLastPatentIngestDate);
+			ResultSet res = ps.executeQuery();
+			if(res.next()) {
+				lastDate = res.getInt(1);
+			}
+			ps.close();
+
 		} else {
-			ps2.setInt(1, 20010000);
+			lastDate = Patent.lastPubDate;
+		}
+		String select = selectPatents;
+		PreparedStatement ps2 = seedConn.prepareStatement(select);
+		if(lastDate!=null) {
+			ps2.setInt(1, lastDate);
+			ps2.setInt(2, lastDate+dateRange);
 		}
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
 
-		ps.close();
 		return ps2.executeQuery();
 	}
 	

@@ -35,7 +35,7 @@ public class Main {
 		System.out.print(allCachedClaims.size()); System.out.println(" lists of claims already ingested...");
 	}
 
-	Main(int limit) throws IOException, SQLException {
+	Main(int dateRange) throws IOException, SQLException {
 		try {
 			Class.forName("org.postgresql.Driver");
 		} catch (ClassNotFoundException e1) {
@@ -50,7 +50,7 @@ public class Main {
 		int timeToCommit = 0;
 		long timeInit = System.currentTimeMillis();
 
-		ResultSet results = Database.selectPatents(limit);
+		ResultSet results = Database.selectPatents(dateRange);
 		try {
 			while (results.next()) {
 				try {

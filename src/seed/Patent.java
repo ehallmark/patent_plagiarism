@@ -2,8 +2,8 @@ package seed;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
-import java.util.concurrent.RecursiveAction;
 import java.util.List;
+import java.util.concurrent.RecursiveAction;
 
 import seed.Database.SimilarityType;
 
@@ -25,6 +25,11 @@ public class Patent extends RecursiveAction {
 
 		if (!Main.SEED_CLAIMS_ONLY) {
 			RecursiveAction abstractAction = new RecursiveAction() {
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				protected void compute() {
 					try {
@@ -38,6 +43,11 @@ public class Patent extends RecursiveAction {
 			tasks.add(abstractAction);
 
 			RecursiveAction descriptionAction = new RecursiveAction() {
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				public void compute() {
 					try {
@@ -55,6 +65,11 @@ public class Patent extends RecursiveAction {
 		if(!Main.allCachedClaims.contains(obj.name)) {
 			Main.allCachedClaims.remove(obj.name);
 			RecursiveAction action = new RecursiveAction() {
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+
 				@Override
 				public void compute() {
 					Integer[] claimCache = new Integer[Main.NUM_HASH_FUNCTIONS_CLAIM];
@@ -73,6 +88,11 @@ public class Patent extends RecursiveAction {
 							for (int i = 0; i < claims.length; i++) {
 								final int n = i;
 								RecursiveAction task = new RecursiveAction() {
+									/**
+									 * 
+									 */
+									private static final long serialVersionUID = 1L;
+
 									@Override
 									protected void compute() {
 										if (numbers[n] == null || claims[n] == null) return;
@@ -93,6 +113,11 @@ public class Patent extends RecursiveAction {
 							actions.forEach(task->task.join());
 
 							RecursiveAction cachedClaim = new RecursiveAction() {
+								/**
+								 * 
+								 */
+								private static final long serialVersionUID = 1L;
+
 								@Override
 								protected void compute() {
 									try {
