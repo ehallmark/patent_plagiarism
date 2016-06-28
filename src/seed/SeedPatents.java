@@ -25,11 +25,12 @@ public class SeedPatents {
 			Database.setupSeedConn();
 			Database.setupMainConn();
 			Main.setupLists();
+			Patent.lastPubDate=Database.selectLastDate();
 			Database.close();
-			while((Patent.lastPubDate==null) || Patent.lastPubDate < currentDate) {
+			while(Patent.lastPubDate < currentDate) {
 				Database.setupSeedConn();
 				Database.setupMainConn();
-				new Main();
+				new Main(Patent.lastPubDate);
 				Patent.lastPubDate++;
 			}
 		} catch (IOException e) {

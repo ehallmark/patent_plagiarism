@@ -95,26 +95,22 @@ public class Database {
 		}
 	}
 
-	public static ResultSet selectPatents()throws SQLException {
-		Integer lastDate=null;
-		if(Patent.lastPubDate==null) {
-			PreparedStatement ps = seedConn.prepareStatement(selectLastPatentIngestDate);
-			ResultSet res = ps.executeQuery();
-			if(res.next()) {
-				lastDate = res.getInt(1);
-			}
-			ps.close();
-
-		} else {
-			lastDate = Patent.lastPubDate;
+	public static Integer selectLastDate()  throws SQLException {
+		PreparedStatement ps = seedConn.prepareStatement(selectLastPatentIngestDate);
+		ResultSet res = ps.executeQuery();
+		if(res.next()) {
+			return res.getInt(1);
 		}
+		ps.close();
+		return null;
+	}
+	
+	public static ResultSet selectPatents(int date)throws SQLException {
 		String select;
 		if(Main.SEED_CLAIMS_ONLY) select = selectPatentNumbers;
 		else select = selectPatents;
 		PreparedStatement ps2 = seedConn.prepareStatement(select);
-		if(lastDate!=null) {
-			ps2.setInt(1, lastDate);
-		}
+		ps2.setInt(1, date);
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
 

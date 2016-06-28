@@ -33,12 +33,12 @@ public class Main {
 		System.out.print(allCachedClaims.size()); System.out.println(" lists of claims already ingested...");
 	}
 
-	Main() throws IOException, SQLException {
+	Main(int date) throws IOException, SQLException {
 		ForkJoinPool pool = new ForkJoinPool();
 		int timeToCommit = 0;
 		long timeInit = System.currentTimeMillis();
 
-		ResultSet results = Database.selectPatents();
+		ResultSet results = Database.selectPatents(date);
 		try {
 			while (results.next()) {
 				try {

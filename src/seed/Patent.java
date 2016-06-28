@@ -17,7 +17,7 @@ public class Patent extends RecursiveAction {
 	public Patent(QueueSender obj)  {
 		// Fork process
 		this.obj=obj;
-		Patent.lastPubDate=obj.date;
+		//Patent.lastPubDate=obj.date;
 	}
 
 	public void compute() {
