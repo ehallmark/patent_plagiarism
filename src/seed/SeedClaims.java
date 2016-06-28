@@ -7,11 +7,19 @@ import java.util.Date;
 public class SeedClaims {
 	public static void main(String[] args) {
 		try {
-			if (args.length > 1)
+			if (args.length > 1) {
 				try {
 					Main.FETCH_SIZE = Integer.parseInt(args[1]);
 				} catch (Exception e) {
 				}
+			}
+			try {
+				Class.forName("org.postgresql.Driver");
+			} catch (ClassNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				return;
+			}
 			Main.SEED_CLAIMS_ONLY=true;
 			final int currentDate = Integer.valueOf(new SimpleDateFormat("yyyyMMdd").format(new Date()));
 			Database.setupSeedConn();
@@ -22,6 +30,7 @@ public class SeedClaims {
 				Database.setupSeedConn();
 				Database.setupMainConn();
 				new Main(15);
+				Patent.lastPubDate++;
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

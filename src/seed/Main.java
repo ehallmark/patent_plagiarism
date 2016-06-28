@@ -36,14 +36,6 @@ public class Main {
 	}
 
 	Main(int dateRange) throws IOException, SQLException {
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return;
-		}
-
 		ForkJoinPool pool = new ForkJoinPool();
 		int timeToCommit = 0;
 		long timeInit = System.currentTimeMillis();
