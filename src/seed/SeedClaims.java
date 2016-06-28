@@ -10,9 +10,10 @@ public class SeedClaims {
 					Main.FETCH_SIZE = Integer.parseInt(args[1]);
 				} catch (Exception e) {
 				}
+			Main.SEED_CLAIMS_ONLY=true;
 			Database.setupSeedConn();
 			Database.setupMainConn();
-			new MainClaims();
+			new Main();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

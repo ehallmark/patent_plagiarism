@@ -3,6 +3,7 @@ package seed;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
@@ -22,10 +23,16 @@ public class Main {
 	public static final int NUM_HASH_FUNCTIONS_CLAIM = 100;
 	
 	public static int FETCH_SIZE = 5;
-	//private ForkJoinPool fork = new ForkJoinPool();
+	public static Set<String> allCachedClaims;
+	public static boolean SEED_CLAIMS_ONLY = false;
 
 	Main() throws IOException, SQLException {
 		this(-1);
+	}
+
+	private void setupLists() throws SQLException {
+		allCachedClaims=Database.selectPatentNumbers("patent_claim_cache_min_hash");
+		System.out.print(allCachedClaims.size()); System.out.println(" lists of claims already ingested...");
 	}
 
 	Main(int limit) throws IOException, SQLException {
@@ -36,6 +43,8 @@ public class Main {
 			e1.printStackTrace();
 			return;
 		}
+
+		setupLists();
 
 		ForkJoinPool pool = new ForkJoinPool();
 		int timeToCommit = 0;
@@ -48,14 +57,14 @@ public class Main {
 					pool.execute(new Patent(new QueueSender(results.getString(1),results.getInt(2), results.getString(3), results.getString(4))));
 					timeToCommit++;
 					if(timeToCommit > 1000) {
-						while(pool.hasQueuedSubmissions()) {
-							try {
-								pool.awaitQuiescence(500, TimeUnit.MILLISECONDS);
-							} catch (Exception e) {
-								
-							}
+						pool.shutdown();
+						try {
+							pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+						} catch(Exception e) {
+							e.printStackTrace();
+							return;
 						}
-
+						pool = new ForkJoinPool();
 						System.out.println("Finished 1000 Patents in: "+new Double(System.currentTimeMillis()-timeInit)/(1000)+ " seconds");
 						timeInit = System.currentTimeMillis();
 						// Update last date

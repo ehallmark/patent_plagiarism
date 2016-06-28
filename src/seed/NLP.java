@@ -31,7 +31,7 @@ public class NLP {
 	}
 
 	// Never returns null
-	public static List<Integer> createMinHash(String result, SimilarityType type, int shingleLength) throws SQLException {
+	public static List<Integer> createMinHash(String result, SimilarityType type, int shingleLength)  {
 		if(result==null)return null;
 
 		Integer numHashFunctions;

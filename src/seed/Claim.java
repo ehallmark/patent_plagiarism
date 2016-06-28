@@ -18,11 +18,9 @@ public class Claim extends RecursiveAction {
 		this.claimText = claimText;
 		Claim.lastUid = lastUid;
 		System.out.println(lastUid);
-
 	}
 	
 
-	@Override
 	protected void compute() {
 		try {
 			Database.updateClaimMinHash(NLP.createMinHash(claimText,SimilarityType.CLAIM, Main.LEN_SHINGLES), patentName, claimNum);
