@@ -29,7 +29,7 @@ public class SeedPatents {
 			while((Patent.lastPubDate==null) || Patent.lastPubDate < currentDate) {
 				Database.setupSeedConn();
 				Database.setupMainConn();
-				new Main(15);
+				new Main();
 				Patent.lastPubDate++;
 			}
 		} catch (IOException e) {

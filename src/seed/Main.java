@@ -26,21 +26,19 @@ public class Main {
 	public static Set<String> allCachedClaims;
 	public static boolean SEED_CLAIMS_ONLY = false;
 
-	Main() throws IOException, SQLException {
-		this(-1);
-	}
+
 
 	public static void setupLists() throws SQLException {
 		allCachedClaims=Database.selectPatentNumbers("patent_claim_cache_min_hash");
 		System.out.print(allCachedClaims.size()); System.out.println(" lists of claims already ingested...");
 	}
 
-	Main(int dateRange) throws IOException, SQLException {
+	Main() throws IOException, SQLException {
 		ForkJoinPool pool = new ForkJoinPool();
 		int timeToCommit = 0;
 		long timeInit = System.currentTimeMillis();
 
-		ResultSet results = Database.selectPatents(dateRange);
+		ResultSet results = Database.selectPatents();
 		try {
 			while (results.next()) {
 				try {

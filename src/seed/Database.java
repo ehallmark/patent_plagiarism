@@ -21,13 +21,13 @@ public class Database {
 	private static final String lastClaimIngest = "UPDATE last_min_hash_ingest SET last_uid=? WHERE table_name = 'patent_grant_claim'";
 	private static final String selectLastPatentIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant' limit 1";
 	private static final String selectLastClaimIngestDate = " SELECT last_uid FROM last_min_hash_ingest WHERE table_name = 'patent_grant_claim' limit 1";
-	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date between ? and ?";
+	private static final String selectPatents = "SELECT pub_doc_number, pub_date, words(abstract) as abstract, words(description) as description FROM patent_grant WHERE pub_date = ?";
+	private static final String selectPatentNumbers = "SELECT pub_doc_number, pub_date FROM patent_grant WHERE pub_date = ?";
 	private static final String selectClaims = "SELECT pub_doc_number, words(claim_text) as claim, number, uid FROM patent_grant_claim WHERE uid between ? and ? order by uid";
 	private static final String selectCitations = "SELECT patent_cited_doc_number FROM patent_grant_citation WHERE pub_doc_number=? AND patent_cited_doc_number IS NOT NULL ORDER BY patent_cited_doc_number DESC";
 	private static final String selectAssignee = "SELECT orgname FROM patent_grant_assignee WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectApplicant = "SELECT orgname FROM patent_grant_applicant WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectClaimsByPatentNumber = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ? ";
-	private static final String selectPatentNumbers = "SELECT pub_doc_number, pub_date FROM patent_grant WHERE pub_date between ? and ?";
 
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
@@ -95,7 +95,7 @@ public class Database {
 		}
 	}
 
-	public static ResultSet selectPatents(int dateRange)throws SQLException {
+	public static ResultSet selectPatents()throws SQLException {
 		Integer lastDate=null;
 		if(Patent.lastPubDate==null) {
 			PreparedStatement ps = seedConn.prepareStatement(selectLastPatentIngestDate);
@@ -114,7 +114,6 @@ public class Database {
 		PreparedStatement ps2 = seedConn.prepareStatement(select);
 		if(lastDate!=null) {
 			ps2.setInt(1, lastDate);
-			ps2.setInt(2, lastDate+dateRange);
 		}
 		ps2.setFetchSize(Main.FETCH_SIZE);
 		System.out.println(ps2);
