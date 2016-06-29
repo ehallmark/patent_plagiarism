@@ -13,7 +13,7 @@ public class AddAssigneeNamesToMinHashTables {
 		int i = 0;
 		while(results.next()) {
 			String patent = results.getString(1);
-			if(!pubDocNumbers.contains(patent)) {
+			if(patent!=null && !pubDocNumbers.contains(patent)) {
 				System.out.println(patent);
 				Database.updateAssigneeNames(patent,results.getString(2));
 				i= (i+1)%1000;
