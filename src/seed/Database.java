@@ -28,7 +28,7 @@ public class Database {
 	private static final String selectAssignee = "SELECT orgname FROM patent_grant_assignee WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectApplicant = "SELECT orgname FROM patent_grant_applicant WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectClaimsByPatentNumber = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ? ";
-	private static final String selectAllAssignees = "select pub_doc_number, orgname  from patent_grant_applicant where pub_doc_number=ANY(select pub_doc_number from patent_abstract_min_hash)";
+	private static final String selectAllAssignees = "select q.pub_doc_number, orgname  from patent_abstract_min_hash as p join patent_grant_applicant as q on (p.pub_doc_number=q.pub_doc_number)";
 	private static final String updateAbstractAssigneeName = "update patent_abstract_min_hash set assignee_name = ? where pub_doc_number = ?";
 	private static final String updateDescriptionAssigneeName = "update patent_description_min_hash set assignee_name = ? where pub_doc_number = ?";
 	private static final String updateClaimAssigneeName = "update patent_claim_min_hash set assignee_name = ? where pub_doc_number = ?";
