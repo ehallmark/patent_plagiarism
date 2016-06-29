@@ -568,13 +568,20 @@ public class Database {
 	}
 
 	public static void updateAssigneeNames(String patent, String assigneeName) throws SQLException {
-		for(String query : updateAssignees) {
-			PreparedStatement ps = mainConn.prepareStatement(query);
-			ps.setString(1,assigneeName);
-			ps.setString(2, patent);
-			ps.executeUpdate();
-			ps.close();
-		}
+		String fullQuery = "";
+		for(String query : updateAssignees) { fullQuery+= query+"; "; }		
+		PreparedStatement ps = mainConn.prepareStatement(fullQuery);
+		System.out.println(ps);
+		ps.setString(1,assigneeName);
+		ps.setString(2, patent);
+		ps.setString(3,assigneeName);
+		ps.setString(4, patent);
+		ps.setString(5,assigneeName);
+		ps.setString(6, patent);
+		ps.setString(7,assigneeName);
+		ps.setString(8, patent);
+		ps.executeUpdate();
+		ps.close();
 	}
 
 
