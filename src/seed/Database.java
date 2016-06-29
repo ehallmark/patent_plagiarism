@@ -28,6 +28,12 @@ public class Database {
 	private static final String selectAssignee = "SELECT orgname FROM patent_grant_assignee WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectApplicant = "SELECT orgname FROM patent_grant_applicant WHERE pub_doc_number=? AND orgname IS NOT NULL";
 	private static final String selectClaimsByPatentNumber = "SELECT array_agg(words(claim_text)) as claims, array_agg(number) as numbers FROM patent_grant_claim WHERE pub_doc_number = ? ";
+	private static final String selectAllAssignees = "select p.pub_doc_number, coalesce(p.orgname, q.orgname) from patent_abstract_min_hash as r join patent_grant_applicant as p on (p.pub_doc_number=r.pub_doc_number) join patent_grant_assignee as q on (p.pub_doc_number=q.pub_doc_number) where coalesce(p.orgname, q.orgname) is not null";
+	private static final String updateAbstractAssigneeName = "update patent_abstract_min_hash set assignee_name = ? where pub_doc_number = ?";
+	private static final String updateDescriptionAssigneeName = "update patent_description_min_hash set assignee_name = ? where pub_doc_number = ?";
+	private static final String updateClaimAssigneeName = "update patent_claim_min_hash set assignee_name = ? where pub_doc_number = ?";
+	private static final String updateClaimCacheAssigneeName = "update patent_claim_cache_min_hash set assignee_name = ? where pub_doc_number = ?";
+	private static final String[] updateAssignees = new String[]{updateAbstractAssigneeName,updateDescriptionAssigneeName,updateClaimAssigneeName,updateClaimCacheAssigneeName};
 
 	public static void setupMainConn() throws SQLException {
 		mainConn = DriverManager.getConnection(outUrl);
@@ -83,14 +89,13 @@ public class Database {
 		
 	}
 	
-	public static String selectApplicant(String patent) throws SQLException {
+	private static String selectApplicant(String patent) throws SQLException {
 		PreparedStatement ps = mainConn.prepareStatement(selectApplicant);
 		ps.setString(1, patent);
 		ResultSet results = ps.executeQuery();
 		if(results.next()) {
 			return results.getString(1);
 		} else {
-			ps.close();
 			return null;
 		}
 	}
@@ -341,7 +346,7 @@ public class Database {
 		ResultSet res = ps.executeQuery();
 		List<PatentResult> toReturn = new ArrayList<>();
 		while(res.next()) {
-			toReturn.add(new PatentResult(res.getString(1),withAssignees));
+			toReturn.add(new PatentResult(res.getString(1),Database.selectAssignee(patent)));
 		}
 		return toReturn;
 	}
@@ -395,7 +400,7 @@ public class Database {
 
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
-		similarSelect.add("SELECT pub_doc_number,");
+		similarSelect.add("SELECT pub_doc_number,assignee_name,");
 		StringJoiner join = new StringJoiner("+", "(", ")");
 		StringJoiner where = new StringJoiner(" or ","AND (",")");
 		ResultSet results = ps.executeQuery();
@@ -430,11 +435,11 @@ public class Database {
 		results = ps2.executeQuery();
 		if(!isClaim) {
 			while (results.next()) {
-				patents.add(new PatentResult(results.getString(1), results.getInt(2), type, withAssignees));
+				patents.add(new PatentResult(results.getString(1), results.getInt(3), type, results.getString(2)));
 			}
 		} else { // Dealing with claims
 			while (results.next()) {
-				patents.add(new ClaimResult(results.getString(1), results.getInt(2), type, results.getInt(3), withAssignees));
+				patents.add(new ClaimResult(results.getString(1), results.getInt(3), type, results.getInt(4), results.getString(2)));
 			}
 		}
 
@@ -475,7 +480,7 @@ public class Database {
 		
 		// Construct query based on number of bands and length of bands
 		StringJoiner similarSelect = new StringJoiner(" ");
-		similarSelect.add("SELECT pub_doc_number,");
+		similarSelect.add("SELECT pub_doc_number,assignee_name,");
 		StringJoiner join = new StringJoiner("+", "(", ")");
 		StringJoiner where = new StringJoiner(" or ","WHERE (",")");
 		StringJoiner and;
@@ -510,11 +515,11 @@ public class Database {
 		} catch(Exception e) { e.printStackTrace(); }
 		if(!isClaim) {
 			while (results.next()) {
-				patents.add(new PatentResult(results.getString(1), results.getInt(2), type, withAssignees));
+				patents.add(new PatentResult(results.getString(1), results.getInt(3), type, results.getString(2)));
 			}
 		} else { // Dealing with claims
 			while (results.next()) {
-				patents.add(new ClaimResult(results.getString(1), results.getInt(2), type, results.getInt(3), withAssignees));
+				patents.add(new ClaimResult(results.getString(1), results.getInt(3), type, results.getInt(4), results.getString(2)));
 			}
 		}
 		return patents;
@@ -553,6 +558,22 @@ public class Database {
 		}
 		if (seedConn != null)
 			seedConn.close();
+	}
+
+	public static ResultSet selectAssigneeData() throws SQLException {
+		PreparedStatement ps = seedConn.prepareStatement(selectAllAssignees);
+		ps.setFetchSize(10);
+		return ps.executeQuery();
+	}
+
+	public static void updateAssigneeNames(String patent, String assigneeName) throws SQLException {
+		for(String query : updateAssignees) {
+			PreparedStatement ps = mainConn.prepareStatement(query);
+			ps.setString(1,assigneeName);
+			ps.setString(2, patent);
+			ps.executeUpdate();
+			ps.close();
+		}
 	}
 
 

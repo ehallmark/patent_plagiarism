@@ -17,6 +17,9 @@ $$ ;
 
 
 ALTER TABLE patent_description_min_hash ADD COLUMN pub_doc_number varchar(25) PRIMARY KEY;
+alter table patent_description_min_hash add column assignee_name varchar(255);
+
+
 
 DO language 'plpgsql'
 $$

@@ -18,6 +18,7 @@ $$ ;
 
 ALTER TABLE patent_claim_min_hash ADD COLUMN pub_doc_number varchar(25);
 ALTER TABLE patent_claim_min_hash ADD COLUMN claim_number integer;
+alter table patent_claim_min_hash add column assignee_name varchar(255);
 
 CREATE INDEX claim_number_index on patent_claim_min_hash(claim_number);
 CREATE INDEX pub_doc_number_index on patent_claim_min_hash(pub_doc_number);

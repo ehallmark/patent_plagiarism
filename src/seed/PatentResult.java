@@ -1,7 +1,5 @@
 package seed;
 
-import java.sql.SQLException;
-
 import seed.Database.SimilarityType;
 
 public class PatentResult {
@@ -11,9 +9,10 @@ public class PatentResult {
 	protected String assignee;
 
 
-	public PatentResult(String name, Integer similarity, SimilarityType type, boolean withAssignees) {
+	public PatentResult(String name, Integer similarity, SimilarityType type, String assignee) {
 		this.name = name;
 		this.similarity = similarity;
+		this.assignee = assignee;
 		switch(type) {
 			case ABSTRACT: {
 				num_functions = Main.NUM_HASH_FUNCTIONS_ABSTRACT;
@@ -28,13 +27,11 @@ public class PatentResult {
 				num_functions = null;
 			} break;
 		}
-		checkAssigneePresence(withAssignees);
 	}
 	
-	public PatentResult(String name, boolean withAssignees) {
+	public PatentResult(String name, String assignee) {
 		this.name = name;
-		checkAssigneePresence(withAssignees);
-
+		this.assignee = assignee;
 	}
 
 	public String getSimilarity() {
@@ -55,14 +52,5 @@ public class PatentResult {
 		return "<b><a style='margin-left:5px; margin-left:5px;' title='Find Patents Similar to "+name+"' href='find_by_patent?patent=" + name + "' >"+getName()+"</a></b>";
 	}
 	
-	private void checkAssigneePresence(boolean withAssignees) {
-		if(withAssignees) {
-			try {
-				assignee = Database.selectAssignee(name);
-			} catch(SQLException sql) {
-				sql.printStackTrace();
-			}
-		}
-	}
 	
 }

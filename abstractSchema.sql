@@ -18,6 +18,8 @@ $$ ;
 
 ALTER TABLE patent_abstract_min_hash ADD COLUMN pub_doc_number varchar(25) PRIMARY KEY;
 
+alter table patent_abstract_min_hash add column assignee_name varchar(255);
+
 DO language 'plpgsql'
 $$
 DECLARE patent_abstract_index text :=  string_agg('CREATE INDEX abs' || i::text || '_index ON patent_abstract_min_hash (m' || i::text || ',m' || (i+1)::text ||');', ' ') 

@@ -23,7 +23,7 @@ public class Search {
 			+ "<form action='/find_by_patent' method='get'>"
 			+ "<label style='margin: 5px 10px;'>Patent:</label><input id='patent' name='patent' /><br/>"
 			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
-			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><label for='withAssigneesTrue'>Yes</label><input type='radio' name='withAssignees' id='withAssigneesTrue' value='true' /><label for='withAssigneesFalse'>No</label><input type='radio' name='withAssignees' id='withAssigneesFalse' value='false' /><br/><br/>"
+			+ "<br/>"
 			+ "<button>Search</button>"
 
 		+ "</form>"
@@ -31,7 +31,7 @@ public class Search {
 		+ "<form action='/find_by_text' method='post'>"
 			+ "<label style='margin: 5px 10px; vertical-text-align: top; text-align:top; vertical-align:top;'>Text:</label><textarea rows='10' cols='50' id='text' name='text' ></textarea><br/>"
 			+ "<label style='margin: 5px 10px;'>Limit:</label><input name='limit' id='limit' value='"+DEFAULT_LIMIT+"' /><br/>"
-			+ "<label style='margin: 5px 10px;'>Include Assignees:</label><label for='withAssigneesTrue'>Yes</label><input type='radio' name='withAssignees' id='withAssigneesTrue' value='true' /><label for='withAssigneesFalse'>No</label><input type='radio' name='withAssignees' id='withAssigneesFalse' value='false' /><br/><br/>"
+			+ "<br/>"
 			+ "<button>Search</button>"
 		+ "</form>";
 	
@@ -62,19 +62,17 @@ public class Search {
 			StringJoiner template = freshTemplate();
 			String patent = req.queryParams("patent");
 			Integer limit = getLimit(req);
-			boolean withAssignees = getWithAssignees(req);
 			// set cookie
 			res.cookie("limit", limit.toString());
-			res.cookie("withAssignees", String.valueOf(withAssignees));
 
 			if(patent==null || patent.trim().length()==0) return template.add("<b>Please provide a patent number!</b>").toString();
 			else {patent=patent.toUpperCase().trim().replaceAll("US","").replaceAll("[^0-9A-Z]", "");}
 						
 			SimilarityType type = getSimilarityType(req);
 			res.cookie("by", type.toString().toLowerCase()); 
-			PatentResult pr = new PatentResult(patent,withAssignees); 
+			PatentResult pr = new PatentResult(patent,Database.selectAssignee(patent)); 
 			String title = "<h4>Results for Patent "+pr.getUrl()+pr.getExternalUrl()+"</h4>";
-			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit, withAssignees),type, req));
+			template.add(title+resultsToHTML(Database.similarPatents(patent, type, limit, true),type, req));
 			return template.toString();
 		});
 		
@@ -84,10 +82,8 @@ public class Search {
 			if(text==null) return  template.add("<b>Please provide some text!</b>").toString();
 			else {text=Database.cleanWords(text);}			
 			Integer limit = getLimit(req);
-			boolean withAssignees = getWithAssignees(req);
 			// set cookie
 			res.cookie("limit", limit.toString());
-			res.cookie("withAssignees", String.valueOf(withAssignees));
 			SimilarityType type = getSimilarityType(req);
 			if(type.equals(SimilarityType.CITATION)) return  template.add("<b>Cannot find citations for text input!</b>").toString();
 
@@ -95,7 +91,7 @@ public class Search {
 			
 			// Create min hash for this text
 			try {
-				template.add(resultsToHTML(Database.similarPatents(NLP.createMinHash(text, type, Main.LEN_SHINGLES),type,limit,withAssignees),type, req));
+				template.add(resultsToHTML(Database.similarPatents(NLP.createMinHash(text, type, Main.LEN_SHINGLES),type,limit,true),type, req));
 			} catch(Exception e) {
 				return template.add("<b>Unable to perform search. Try providing more text!</b>").toString();
 			}
@@ -136,16 +132,6 @@ public class Search {
 		return SimilarityType.ABSTRACT;
 	}
 	
-	public static boolean getWithAssignees(Request req) {
-		String assignees = req.queryParams("withAssignees");
-		if(assignees!=null && assignees.equalsIgnoreCase("true")) return true;
-		if(assignees!=null && assignees.equalsIgnoreCase("false")) return false;
-
-		String assigneesCookie = req.cookie("withAssignees");
-		if(assigneesCookie!=null && assigneesCookie.equalsIgnoreCase("true")) return true;
-		return false;
-	}
-
 	public static String resultsToHTML(List<PatentResult> results, SimilarityType type, Request req) {
 		StringJoiner outerWrapper = new StringJoiner("","<div style='width:70%; left:0px; top:0px; height: auto;'>","</div>");
 		StringJoiner sj = new StringJoiner("","<table><tbody>","</tbody></table>");

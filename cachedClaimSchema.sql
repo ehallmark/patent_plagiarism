@@ -18,3 +18,4 @@ $$ ;
 
 ALTER TABLE patent_claim_cache_min_hash ADD COLUMN pub_doc_number varchar(25) PRIMARY KEY;
 
+alter table patent_claim_cache_min_hash add column assignee_name varchar(255);
